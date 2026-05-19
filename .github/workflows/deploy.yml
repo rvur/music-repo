@@ -22,7 +22,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ~/music-server
+            cd ~/music-repo
             git pull
             docker compose down
             docker compose up -d --build
