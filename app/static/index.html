@@ -1,980 +1,1458 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Music Repository</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; color: #fff; }
-        input:focus, button:focus { outline: none; }
-        
-        @keyframes slideDown {
-            from { transform: translateY(-100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        @keyframes slideUp {
-            from { transform: translateY(0); opacity: 1; }
-            to { transform: translateY(-100%); opacity: 0; }
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-        
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.1); }
-            50% { box-shadow: 0 0 40px rgba(255, 255, 255, 0.2); }
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        @keyframes shimmer {
-            0% { background-position: -1000px 0; }
-            100% { background-position: 1000px 0; }
-        }
-        
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        @keyframes float-drift {
-            0%, 100% { transform: translate(0, 0); }
-            25% { transform: translate(10px, -10px); }
-            50% { transform: translate(-5px, 5px); }
-            75% { transform: translate(-10px, -5px); }
-        }
-        
-        .star {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            left: 50%;
-            top: 50%;
-        }
-        
-        .star-small {
-            width: 1px;
-            height: 1px;
-            box-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
-        }
-        
-        .star-medium {
-            width: 2px;
-            height: 2px;
-            box-shadow: 0 0 4px rgba(255, 255, 255, 0.7);
-        }
-        
-        .star-large {
-            width: 3px;
-            height: 3px;
-            box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
-        }
-        
-        .toast-enter { animation: slideDown 0.3s ease-out; }
-        .toast-exit { animation: slideUp 0.3s ease-out; }
-        .float { animation: float 6s ease-in-out infinite; }
-        .glow-on-hover:hover { animation: glow 2s ease-in-out infinite; }
-        .fade-in { animation: fadeIn 0.5s ease-out; }
-        .pulse-hover:hover { animation: pulse 0.6s ease-in-out; }
-        
-        .song-card {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-        }
-        
-        .song-card:hover {
-            transform: translateY(-8px) scale(1.05);
-        }
-        
-        .song-card:hover .play-overlay {
-            opacity: 1;
-        }
-        
-        .play-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            cursor: pointer;
-            z-index: 20;
-        }
-        
-        .play-button {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: white;
-            color: black;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            transition: all 0.3s ease;
-        }
-        
-        .play-button:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
-        }
-        
-        .shimmer-bg {
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
-            background-size: 1000px 100%;
-            animation: shimmer 3s infinite;
-        }
-        
-        .song-info {
-            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 12px;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-        }
-        
-        .song-card:hover .song-info {
-            transform: translateY(0);
-        }
-        
-        .action-buttons {
-            opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.3s ease;
-        }
-        
-        .song-card:hover .action-buttons {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .gradient-border {
-            position: relative;
-            background: black;
-        }
-        
-        .gradient-border::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            padding: 1px;
-            background: linear-gradient(45deg, #333, #666, #333);
-            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-        
-        .gradient-border:hover::before {
-            opacity: 1;
-        }
-        
-        .search-glow:focus {
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Music Collection</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0d0b0a;
+      --surface: #181513;
+      --surface-hi: #221d1a;
+      --border: #2a2522;
+      --border-hi: #3a342f;
+      --text: #f0e9dc;
+      --text-muted: #857c70;
+      --text-dim: #5a5249;
+      --accent: #d4a86a;
+      --accent-soft: rgba(212, 168, 106, 0.12);
+      --accent-dim: #8a6f44;
+      --danger: #c75d4a;
+      --danger-soft: rgba(199, 93, 74, 0.12);
+      --shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+      --serif: 'Fraunces', Georgia, serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--serif);
+      font-weight: 400;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212, 168, 106, 0.08), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(199, 93, 74, 0.04), transparent);
+      background-attachment: fixed;
+      padding-bottom: 110px;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: inherit;
+    }
+
+    input, textarea {
+      font-family: inherit;
+      color: inherit;
+    }
+
+    .mono { font-family: var(--mono); }
+
+    /* ====== Layout ====== */
+    .app-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* ====== Header ====== */
+    header.topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(13, 11, 10, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 22px 0;
+      margin-bottom: 48px;
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+    .brand-mark {
+      font-family: var(--serif);
+      font-weight: 500;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+      font-style: italic;
+    }
+    .brand-sub {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: 2px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: all 0.18s ease;
+      border: 1px solid transparent;
+    }
+
+    .btn-ghost {
+      color: var(--text-muted);
+      border-color: var(--border-hi);
+    }
+    .btn-ghost:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #1a1410;
+      font-weight: 500;
+    }
+    .btn-primary:hover { background: #e2b87a; }
+
+    .btn-danger {
+      color: var(--danger);
+      border: 1px solid transparent;
+    }
+    .btn-danger:hover {
+      background: var(--danger-soft);
+    }
+
+    .btn-link {
+      color: var(--accent);
+      padding: 0;
+      font-family: var(--serif);
+      font-size: 14px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .btn-link:hover { text-decoration: underline; }
+
+    .user-chip {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .user-chip span { color: var(--accent); }
+
+    /* ====== Hero / Stats ====== */
+    .hero {
+      margin-bottom: 56px;
+    }
+    .hero-title {
+      font-size: clamp(40px, 6vw, 64px);
+      font-weight: 400;
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      font-variation-settings: 'opsz' 144;
+    }
+    .hero-title em {
+      font-style: italic;
+      color: var(--accent);
+      font-weight: 300;
+    }
+    .hero-stats {
+      display: flex;
+      gap: 36px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+    .hero-stats div span {
+      color: var(--text);
+      margin-right: 4px;
+    }
+
+    /* ====== Search bar ====== */
+    .toolbar {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 28px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .search {
+      flex: 1;
+      position: relative;
+    }
+    .search input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 8px 0;
+      font-size: 18px;
+      font-family: var(--serif);
+      font-style: italic;
+      color: var(--text);
+    }
+    .search input::placeholder {
+      color: var(--text-dim);
+      font-style: italic;
+    }
+    .toolbar-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* ====== Song list ====== */
+    .song-list { display: flex; flex-direction: column; }
+
+    .list-header {
+      display: grid;
+      grid-template-columns: 50px 1fr 100px 80px 80px;
+      gap: 16px;
+      padding: 0 14px 12px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+    }
+    .list-header .h-num { text-align: center; }
+    .list-header .h-dur,
+    .list-header .h-size { text-align: right; }
+
+    .song-row {
+      display: grid;
+      grid-template-columns: 50px 1fr 100px 80px 80px;
+      gap: 16px;
+      align-items: center;
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s ease;
+      cursor: pointer;
+    }
+    .song-row:hover {
+      background: var(--surface);
+    }
+    .song-row.playing {
+      background: var(--accent-soft);
+    }
+
+    .song-num {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    .song-row.playing .song-num {
+      color: var(--accent);
+    }
+    .song-row:hover .song-num.playable { color: var(--text); }
+
+    .song-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+    .cover {
+      width: 44px;
+      height: 44px;
+      border-radius: 2px;
+      object-fit: cover;
+      background: linear-gradient(135deg, #2a2522, #181513);
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .cover-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-style: italic;
+      color: var(--accent-dim);
+      font-size: 18px;
+    }
+    .song-name {
+      font-size: 17px;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .song-row.playing .song-name {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .song-meta {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: right;
+    }
+    .song-actions {
+      text-align: right;
+    }
+    .icon-btn {
+      padding: 6px;
+      color: var(--text-dim);
+      transition: color 0.15s ease;
+      opacity: 0;
+    }
+    .song-row:hover .icon-btn { opacity: 1; }
+    .icon-btn:hover { color: var(--danger); }
+    .icon-btn svg { width: 16px; height: 16px; display: block; }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state h3 {
+      font-weight: 400;
+      font-size: 28px;
+      font-style: italic;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .empty-state p {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ====== Player bar ====== */
+    .player {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(13, 11, 10, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-hi);
+      padding: 14px 32px;
+      z-index: 30;
+      box-shadow: var(--shadow);
+    }
+    .player-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+    .player-track {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+    .player-track .cover { width: 52px; height: 52px; }
+    .player-track-meta { min-width: 0; }
+    .player-track-name {
+      font-size: 16px;
+      font-style: italic;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-track-sub {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .player-controls {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .ctrl-btn {
+      color: var(--text-muted);
+      transition: color 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ctrl-btn:hover { color: var(--text); }
+    .ctrl-btn svg { width: 18px; height: 18px; display: block; }
+
+    .play-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #1a1410;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .play-btn:hover {
+      background: #e2b87a;
+      transform: scale(1.05);
+    }
+    .play-btn svg { width: 18px; height: 18px; display: block; }
+
+    .volume-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 6px;
+      padding-left: 16px;
+      border-left: 1px solid var(--border);
+    }
+    .volume-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 80px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .volume-slider:hover {
+      background: var(--border-hi);
+    }
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+      border: 2px solid var(--bg);
+    }
+    .volume-slider:hover::-webkit-slider-thumb {
+      transform: scale(1.2);
+    }
+    .volume-slider::-moz-range-thumb {
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid var(--bg);
+    }
+    /* Gradient fill effect using background */
+    .volume-slider {
+      background: linear-gradient(
+        to right,
+        var(--accent) 0%,
+        var(--accent) var(--vol-pct, 80%),
+        var(--border) var(--vol-pct, 80%),
+        var(--border) 100%
+      );
+    }
+
+    .player-progress {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+    .time {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      min-width: 38px;
+    }
+    .progress {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .progress-fill {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      background: var(--accent);
+      transition: width 0.1s linear;
+    }
+    .progress:hover .progress-fill {
+      background: #e2b87a;
+    }
+    .player-empty {
+      text-align: center;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 18px;
+    }
+
+    /* ====== Modal ====== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fade 0.2s ease;
+    }
+    @keyframes fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border-hi);
+      border-radius: 4px;
+      padding: 40px;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: var(--shadow);
+      animation: slide 0.25s cubic-bezier(.2,.8,.3,1.2);
+    }
+    @keyframes slide {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-title {
+      font-size: 32px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+    .modal-title em { font-style: italic; color: var(--accent); }
+    .modal-sub {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+    .form-group { margin-bottom: 18px; }
+    .form-group label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="password"],
+    .form-group input[type="url"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border-hi);
+      padding: 12px 14px;
+      font-size: 16px;
+      border-radius: 2px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .form-group input:focus { border-color: var(--accent); }
+
+    .file-drop {
+      border: 1px dashed var(--border-hi);
+      padding: 32px;
+      text-align: center;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      color: var(--text-muted);
+    }
+    .file-drop:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .file-drop input { display: none; }
+    .file-drop .drop-hint {
+      font-style: italic;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+    .file-drop .drop-sub {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .file-drop.has-file {
+      border-style: solid;
+      border-color: var(--accent-dim);
+      color: var(--text);
+    }
+
+    .form-error {
+      background: var(--danger-soft);
+      border-left: 2px solid var(--danger);
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #e8a395;
+      margin-bottom: 16px;
+      font-family: var(--mono);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 28px;
+    }
+    .modal-divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 24px 0;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .modal-divider::before,
+    .modal-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      padding: 10px 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.15s ease;
+    }
+    .tab.active {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .tab:hover { color: var(--text); }
+
+    /* ====== Toast ====== */
+    .toast-container {
+      position: fixed;
+      top: 100px;
+      right: 32px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      background: var(--surface-hi);
+      border: 1px solid var(--border-hi);
+      border-left: 2px solid var(--accent);
+      padding: 12px 18px;
+      border-radius: 2px;
+      font-size: 14px;
+      max-width: 320px;
+      box-shadow: var(--shadow);
+      animation: toast-in 0.3s cubic-bezier(.2,.8,.3,1.2);
+    }
+    .toast.error { border-left-color: var(--danger); }
+    .toast strong { font-style: italic; color: var(--accent); }
+    .toast.error strong { color: var(--danger); }
+    @keyframes toast-in {
+      from { transform: translateX(20px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ====== Loading ====== */
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border-hi);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 720px) {
+      .app-wrap { padding: 0 18px; }
+      .player { padding: 12px 16px; }
+      .player-inner { grid-template-columns: 1fr; gap: 12px; }
+      .player-track { justify-content: center; }
+      .list-header { grid-template-columns: 36px 1fr 70px; }
+      .list-header .h-size, .list-header .h-act { display: none; }
+      .song-row { grid-template-columns: 36px 1fr 70px; }
+      .song-row .song-size-col, .song-row .song-actions { display: none; }
+      .hero-stats { gap: 20px; flex-wrap: wrap; }
+    }
+  </style>
 </head>
-<body class="bg-black text-white min-h-screen">
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 hidden">
-        <div class="bg-white text-black px-6 py-4 min-w-64 text-center">
-            <span id="toastMessage"></span>
+<body>
+  <div id="app">
+    <!-- ===== Header ===== -->
+    <header class="topbar">
+      <div class="app-wrap topbar-inner">
+        <div class="brand">
+          <div class="brand-mark">Archive</div>
+          <div class="brand-sub">— Personal Music Vault</div>
         </div>
+        <div class="topbar-actions">
+          <template v-if="loggedIn">
+            <button class="btn btn-ghost" @click="openUpload">+ Add</button>
+            <span class="user-chip">signed in as <span>{{ username }}</span></span>
+            <button class="btn btn-ghost" @click="logout">Sign out</button>
+          </template>
+          <template v-else>
+            <button class="btn btn-ghost" @click="openAuth('login')">Sign in</button>
+          </template>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-wrap">
+      <!-- ===== Hero ===== -->
+      <section class="hero">
+        <h1 class="hero-title">Songs I listen to<br><em>Coded by me.</em></h1>
+        <div class="hero-stats">
+          <div><span class="mono">{{ songs.length }}</span> tracks</div>
+          <div><span class="mono">{{ formatTotalDuration() }}</span> listening time</div>
+          <div><span class="mono">{{ totalSize.toFixed(1) }}</span> MB on disk</div>
+          <div v-if="loggedIn"><span class="mono">{{ playlists.length }}</span> playlists</div>
+        </div>
+      </section>
+
+      <!-- ===== Toolbar ===== -->
+      <div class="toolbar">
+        <div class="search">
+          <input
+            type="text"
+            v-model="search"
+            placeholder="Search the library…"
+          />
+        </div>
+        <div class="toolbar-meta">
+          {{ filteredSongs.length }} / {{ songs.length }} shown
+        </div>
+      </div>
+
+      <!-- ===== Song list ===== -->
+      <div class="song-list" v-if="!loading">
+        <div class="list-header" v-if="filteredSongs.length">
+          <div class="h-num">#</div>
+          <div>Title</div>
+          <div class="h-dur">Length</div>
+          <div class="h-size">Size</div>
+          <div class="h-act"></div>
+        </div>
+
+        <div
+          v-for="(song, index) in filteredSongs"
+          :key="song.id"
+          class="song-row"
+          :class="{ playing: currentSong && currentSong.id === song.id }"
+          @click="playSong(song, index)"
+        >
+          <div class="song-num">
+            <template v-if="currentSong && currentSong.id === song.id && isPlaying">
+              <span style="color: var(--accent);">♪</span>
+            </template>
+            <template v-else>{{ index + 1 }}</template>
+          </div>
+
+          <div class="song-info">
+            <img
+              v-if="hasValidCover(song)"
+              :src="song.cover"
+              class="cover"
+              :alt="song.song_name"
+              @error="onCoverError($event)"
+            />
+            <div v-else class="cover cover-fallback">♫</div>
+            <div class="song-name">{{ cleanName(song.song_name) }}</div>
+          </div>
+
+          <div class="song-meta">{{ formatDuration(song.length) }}</div>
+          <div class="song-meta song-size-col">{{ song.size.toFixed(1) }} MB</div>
+
+          <div class="song-actions">
+            <button
+              v-if="loggedIn"
+              class="icon-btn"
+              @click.stop="confirmDelete(song)"
+              title="Delete"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div v-if="!filteredSongs.length" class="empty-state">
+          <h3>{{ songs.length ? 'No matches found.' : 'The catalog is empty.' }}</h3>
+          <p v-if="!songs.length && !loggedIn">Sign in to add the first track.</p>
+          <p v-else-if="!songs.length">Click "+ Add" above to begin.</p>
+          <p v-else>Try a different search.</p>
+        </div>
+      </div>
+
+      <div v-else class="empty-state">
+        <div class="spinner" style="width: 24px; height: 24px;"></div>
+      </div>
+    </main>
+
+    <!-- ===== Player ===== -->
+    <div class="player">
+      <div class="player-inner">
+        <div class="player-track" v-if="currentSong">
+          <img
+            v-if="hasValidCover(currentSong)"
+            :src="currentSong.cover"
+            class="cover"
+            :alt="currentSong.song_name"
+            @error="onCoverError($event)"
+          />
+          <div v-else class="cover cover-fallback">♫</div>
+          <div class="player-track-meta">
+            <div class="player-track-name">{{ cleanName(currentSong.song_name) }}</div>
+            <div class="player-track-sub">
+              Now playing · {{ formatDuration(currentSong.length) }}
+            </div>
+          </div>
+        </div>
+        <div v-else class="player-empty">
+          Nothing playing — pick a track above.
+        </div>
+
+        <div class="player-controls" v-if="currentSong">
+          <button class="ctrl-btn" @click="previousSong" title="Previous">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+          </button>
+          <button class="play-btn" @click="togglePlay" :title="isPlaying ? 'Pause' : 'Play'">
+            <svg v-if="isPlaying" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+            <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="ctrl-btn" @click="nextSong" title="Next">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </button>
+          <div class="volume-group">
+            <button class="ctrl-btn" @click="toggleMute" :title="muted ? 'Unmute' : 'Mute'">
+              <svg v-if="muted || volume === 0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0021 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 003.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+              </svg>
+              <svg v-else-if="volume < 0.5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 9v6h4l5 5V4l-5 5H7zm9.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              </svg>
+              <svg v-else viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              </svg>
+            </button>
+            <input
+              type="range"
+              class="volume-slider"
+              min="0"
+              max="1"
+              step="0.01"
+              v-model.number="volume"
+              :style="{ '--vol-pct': (muted ? 0 : volume * 100) + '%' }"
+              title="Volume"
+            />
+          </div>
+        </div>
+        <div v-else></div>
+
+        <div class="player-progress" v-if="currentSong">
+          <span class="time">{{ formatDuration(Math.floor(currentTime)) }}</span>
+          <div class="progress" @click="seek($event)">
+            <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
+          </div>
+          <span class="time">{{ formatDuration(currentSong.length) }}</span>
+        </div>
+        <div v-else></div>
+      </div>
     </div>
 
-    <!-- Auth Screen -->
-    <div id="authScreen" class="min-h-screen flex items-center justify-center px-4">
-        <!-- Starfield Background -->
-        <div class="fixed inset-0 pointer-events-none overflow-hidden">
-            <div id="authStarfield"></div>
+    <!-- ===== Auth modal ===== -->
+    <div class="modal-backdrop" v-if="authModal" @click.self="closeAuth">
+      <div class="modal">
+        <h2 class="modal-title">
+          <em v-if="authMode === 'login'">Welcome back.</em>
+          <em v-else>Set up your vault.</em>
+        </h2>
+        <p class="modal-sub">
+          {{ authMode === 'login' ? 'Sign in to manage the library' : 'One account per installation' }}
+        </p>
+
+        <div v-if="authError" class="form-error">{{ authError }}</div>
+
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" v-model="authForm.username" @keyup.enter="submitAuth" autocomplete="username" />
         </div>
-        
-        <div class="w-full max-w-sm relative z-10">
-            <div id="loginForm">
-                <input type="text" id="loginUsername" placeholder="username" class="w-full p-4 mb-3 bg-black border border-gray-800 focus:border-white transition">
-                <input type="password" id="loginPassword" placeholder="password" class="w-full p-4 mb-6 bg-black border border-gray-800 focus:border-white transition">
-                <button onclick="login()" class="w-full bg-white text-black p-4 hover:bg-gray-200 transition mb-6">login</button>
-                <button onclick="showRegister()" class="w-full text-gray-500 hover:text-white transition">register</button>
-            </div>
-            
-            <div id="registerForm" class="hidden">
-                <input type="text" id="regUsername" placeholder="username" class="w-full p-4 mb-3 bg-black border border-gray-800 focus:border-white transition">
-                <input type="password" id="regPassword" placeholder="password" class="w-full p-4 mb-3 bg-black border border-gray-800 focus:border-white transition">
-                <input type="password" id="regRePassword" placeholder="confirm password" class="w-full p-4 mb-6 bg-black border border-gray-800 focus:border-white transition">
-                <button onclick="register()" class="w-full bg-white text-black p-4 hover:bg-gray-200 transition mb-6">register</button>
-                <button onclick="showLogin()" class="w-full text-gray-500 hover:text-white transition">login</button>
-            </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" v-model="authForm.password" @keyup.enter="submitAuth" autocomplete="current-password" />
         </div>
+        <div class="form-group" v-if="authMode === 'register'">
+          <label>Confirm password</label>
+          <input type="password" v-model="authForm.re_password" @keyup.enter="submitAuth" />
+        </div>
+
+        <div class="modal-divider">{{ authMode === 'login' ? 'or' : 'or' }}</div>
+        <div style="text-align: center;">
+          <button class="btn-link" @click="toggleAuthMode">
+            {{ authMode === 'login' ? 'Create an account' : 'I already have an account' }}
+          </button>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-ghost" @click="closeAuth">Cancel</button>
+          <button class="btn btn-primary" @click="submitAuth" :disabled="authSubmitting">
+            <span v-if="authSubmitting" class="spinner"></span>
+            <span v-else>{{ authMode === 'login' ? 'Sign in' : 'Create' }}</span>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Main App -->
-    <div id="mainApp" class="hidden pb-32">
-        <!-- Decorative Background -->
-        <div class="fixed inset-0 pointer-events-none overflow-hidden">
-            <!-- Gradient Orbs -->
-            <div class="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-gray-800 to-transparent rounded-full blur-3xl float opacity-20"></div>
-            <div class="absolute bottom-40 left-20 w-64 h-64 bg-gradient-to-tr from-gray-900 to-transparent rounded-full blur-3xl float opacity-20" style="animation-delay: -3s;"></div>
-            
-            <!-- Starfield -->
-            <div id="starfield"></div>
+    <!-- ===== Upload modal ===== -->
+    <div class="modal-backdrop" v-if="uploadModal" @click.self="closeUpload">
+      <div class="modal">
+        <h2 class="modal-title">Add to the <em>vault</em></h2>
+        <p class="modal-sub">Upload a file or pull from YouTube</p>
+
+        <div class="tabs">
+          <button class="tab" :class="{ active: uploadMode === 'file' }" @click="uploadMode = 'file'">File</button>
+          <button class="tab" :class="{ active: uploadMode === 'yt' }" @click="uploadMode = 'yt'">YouTube</button>
         </div>
 
-        <!-- Top Bar -->
-        <div class="border-b border-gray-900 p-6 md:p-8 backdrop-blur-sm bg-black bg-opacity-80 sticky top-0 z-40">
-            <div class="max-w-7xl mx-auto">
-                <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
-                    <nav class="flex gap-6 md:gap-8 justify-center md:justify-start">
-                        <button onclick="showView('library')" class="text-gray-500 hover:text-white transition relative" id="libraryTab">
-                            <span>library</span>
-                            <div class="absolute bottom-0 left-0 right-0 h-px bg-white scale-x-0 transition-transform origin-left"></div>
-                        </button>
-                        <button onclick="showView('playlists')" class="text-gray-500 hover:text-white transition relative" id="playlistsTab">
-                            <span>playlists</span>
-                            <div class="absolute bottom-0 left-0 right-0 h-px bg-white scale-x-0 transition-transform origin-left"></div>
-                        </button>
-                        <button onclick="showView('upload')" class="text-gray-500 hover:text-white transition relative" id="uploadTab">
-                            <span>upload</span>
-                            <div class="absolute bottom-0 left-0 right-0 h-px bg-white scale-x-0 transition-transform origin-left"></div>
-                        </button>
-                    </nav>
-                    <div class="flex items-center justify-center md:justify-end gap-6 md:gap-8">
-                        <span id="username" class="text-gray-500"></span>
-                        <button onclick="logout()" class="text-gray-500 hover:text-white transition">logout</button>
-                    </div>
-                </div>
+        <div v-if="uploadError" class="form-error">{{ uploadError }}</div>
+
+        <!-- File upload -->
+        <div v-if="uploadMode === 'file'">
+          <label class="file-drop" :class="{ 'has-file': selectedFile }">
+            <div v-if="!selectedFile">
+              <div class="drop-hint">Choose an audio file</div>
+              <div class="drop-sub">mp3 · wav · flac · m4a · webm · opus</div>
             </div>
+            <div v-else>
+              <div class="drop-hint">{{ selectedFile.name }}</div>
+              <div class="drop-sub">{{ (selectedFile.size / 1048576).toFixed(2) }} MB · ready</div>
+            </div>
+            <input type="file" accept=".mp3,.wav,.flac,.m4a,.webm,.mp4,.opus" @change="handleFileSelect" />
+          </label>
         </div>
 
-        <!-- Library View -->
-        <div id="libraryView" class="p-6 md:p-8 relative">
-            <div class="max-w-7xl mx-auto">
-                <!-- Search and Info Bar -->
-                <div class="mb-8 space-y-4">
-                    <input type="text" id="searchInput" placeholder="search your library..." 
-                        class="w-full p-5 bg-gradient-to-r from-gray-900 to-black border border-gray-800 focus:border-white transition-all search-glow text-lg" 
-                        oninput="searchMusic(this.value)">
-                    <div class="flex justify-between items-center text-sm">
-                        <div class="text-gray-500" id="songCount">loading...</div>
-                        <div class="text-gray-500" id="librarySize">loading...</div>
-                    </div>
-                </div>
-                
-                <!-- Songs Grid -->
-                <div id="musicGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6"></div>
-                <div id="noResults" class="hidden text-center text-gray-500 py-20 fade-in">
-                    <div class="text-lg">no songs found</div>
-                </div>
-            </div>
+        <!-- YouTube -->
+        <div v-if="uploadMode === 'yt'" class="form-group">
+          <label>YouTube URL</label>
+          <input type="url" v-model="ytLink" placeholder="https://youtube.com/watch?v=…" @keyup.enter="submitUpload" />
         </div>
 
-        <!-- Playlists View -->
-        <div id="playlistsView" class="hidden p-6 md:p-8 relative">
-            <div class="max-w-7xl mx-auto">
-                <div class="flex justify-center md:justify-end items-center mb-8 md:mb-12">
-                    <button onclick="showCreatePlaylist()" class="px-8 py-3 border border-gray-800 hover:border-white transition-all glow-on-hover hover:scale-105">create playlist</button>
-                </div>
-                <div id="playlistsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"></div>
-                
-                <div id="playlistDetail" class="hidden">
-                    <button onclick="backToPlaylists()" class="mb-6 md:mb-8 text-gray-500 hover:text-white transition">← back</button>
-                    <h3 class="text-xl md:text-2xl mb-6 md:mb-8 text-center md:text-left" id="playlistTitle"></h3>
-                    <div id="playlistSongs" class="space-y-3"></div>
-                </div>
-            </div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" @click="closeUpload">Cancel</button>
+          <button class="btn btn-primary" @click="submitUpload" :disabled="uploadSubmitting">
+            <span v-if="uploadSubmitting" class="spinner"></span>
+            <span v-else>{{ uploadMode === 'file' ? 'Upload' : 'Download' }}</span>
+          </button>
         </div>
-
-        <!-- Upload View -->
-        <div id="uploadView" class="hidden p-6 md:p-8 relative">
-            <div class="max-w-2xl mx-auto space-y-8 md:space-y-12">
-                <div class="gradient-border p-8 border border-gray-900 hover:border-gray-700 transition-all hover:scale-[1.02] fade-in">
-                    <div class="text-lg mb-6 text-gray-400">upload audio file</div>
-                    <input type="file" id="fileInput" accept="audio/*" class="w-full p-4 mb-4 bg-black border border-gray-800 focus:border-white transition">
-                    <button onclick="uploadFile()" class="w-full bg-white text-black p-4 hover:bg-gray-200 transition-all hover:scale-105" id="uploadFileBtn">upload file</button>
-                </div>
-                
-                <div class="gradient-border p-8 border border-gray-900 hover:border-gray-700 transition-all hover:scale-[1.02] fade-in" style="animation-delay: 0.1s">
-                    <div class="text-lg mb-6 text-gray-400">download from youtube</div>
-                    <input type="text" id="ytLink" placeholder="paste youtube url" class="w-full p-4 mb-4 bg-black border border-gray-800 focus:border-white transition">
-                    <button onclick="uploadYouTube()" class="w-full bg-white text-black p-4 hover:bg-gray-200 transition-all hover:scale-105" id="uploadYtBtn">download</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Music Player (Fixed Bottom) -->
-        <div id="musicPlayer" class="fixed bottom-0 left-0 right-0 bg-black border-t border-gray-900 p-4 md:p-8 hidden backdrop-blur-sm bg-opacity-95 fade-in">
-            <div class="max-w-7xl mx-auto">
-                <div class="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-                    <img id="playerCover" src="" class="w-16 h-16 object-cover border border-gray-800 transition-transform hover:scale-105" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23111%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E'">
-                    <div class="flex-1 text-center md:text-left">
-                        <div id="playerTitle" class="text-sm md:text-base">no song playing</div>
-                        <div class="text-xs md:text-sm text-gray-500 mt-1" id="playerTime">0:00 / 0:00</div>
-                    </div>
-                    <div class="flex items-center gap-2 md:gap-3">
-                        <button onclick="previousSong()" class="px-3 py-2 text-xs border border-gray-800 hover:border-white transition-all hover:scale-105">prev</button>
-                        <button onclick="playPause()" id="playPauseBtn" class="px-4 py-2 text-xs bg-white text-black hover:bg-gray-200 transition-all hover:scale-105">play</button>
-                        <button onclick="nextSong()" class="px-3 py-2 text-xs border border-gray-800 hover:border-white transition-all hover:scale-105">next</button>
-                        <button onclick="stopMusic()" class="px-3 py-2 text-xs border border-gray-800 hover:border-white transition-all hover:scale-105">stop</button>
-                        <div class="hidden md:flex items-center gap-2 ml-2">
-                            <span class="text-xs text-gray-500">vol</span>
-                            <input type="range" id="volumeSlider" min="0" max="100" value="50" class="w-20" oninput="setVolume(this.value)">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <audio id="audioPlayer"></audio>
-        </div>
+      </div>
     </div>
 
-    <!-- Modal for creating playlist -->
-    <div id="createPlaylistModal" class="hidden fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 px-4 backdrop-blur-sm">
-        <div class="w-full max-w-sm fade-in">
-            <input type="text" id="playlistName" placeholder="playlist name" class="w-full p-4 mb-3 bg-black border border-gray-800 focus:border-white transition">
-            <div class="flex gap-3">
-                <button onclick="createPlaylist()" class="flex-1 bg-white text-black p-4 hover:bg-gray-200 transition-all hover:scale-105">create</button>
-                <button onclick="closeCreatePlaylist()" class="flex-1 border border-gray-800 p-4 hover:border-white transition-all hover:scale-105">cancel</button>
-            </div>
-        </div>
+    <!-- ===== Toasts ===== -->
+    <div class="toast-container">
+      <div v-for="t in toasts" :key="t.id" class="toast" :class="{ error: t.type === 'error' }">
+        <strong>{{ t.title }}</strong> &nbsp; {{ t.body }}
+      </div>
     </div>
 
-    <!-- Modal for adding to playlist -->
-    <div id="addToPlaylistModal" class="hidden fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 px-4 backdrop-blur-sm">
-        <div class="w-full max-w-sm fade-in">
-            <div id="playlistSelectList" class="space-y-2 mb-3 max-h-96 overflow-y-auto"></div>
-            <button onclick="closeAddToPlaylist()" class="w-full border border-gray-800 p-4 hover:border-white transition-all hover:scale-105">cancel</button>
-        </div>
-    </div>
+    <!-- ===== Audio element ===== -->
+    <audio ref="audio" @timeupdate="onTimeUpdate" @ended="onEnded" @loadedmetadata="onLoadedMetadata"></audio>
+  </div>
 
-    <!-- Modal for delete confirmation -->
-    <div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 px-4 backdrop-blur-sm">
-        <div class="w-full max-w-sm fade-in">
-            <div class="text-center mb-6">delete this song?</div>
-            <div class="flex gap-3">
-                <button onclick="confirmDelete()" class="flex-1 bg-white text-black p-4 hover:bg-gray-200 transition-all hover:scale-105">delete</button>
-                <button onclick="closeDeleteModal()" class="flex-1 border border-gray-800 p-4 hover:border-white transition-all hover:scale-105">cancel</button>
-            </div>
-        </div>
-    </div>
+  <script>
+    const { createApp } = Vue;
 
-    <script>
-        let currentSong = null;
-        let currentSongIndex = -1;
-        let allSongs = [];
-        let allPlaylists = [];
-        let currentPlaylist = null;
-        let selectedSongForPlaylist = null;
-        let songToDelete = null;
-        let currentUsername = '';
-        let filteredSongs = [];
-        let starfieldIntervals = {};
+    createApp({
+      data() {
+        return {
+          // auth
+          loggedIn: false,
+          username: '',
+          authModal: false,
+          authMode: 'login',
+          authForm: { username: '', password: '', re_password: '' },
+          authError: '',
+          authSubmitting: false,
 
-        // Toast Notification System
-        function showToast(message, duration = 3000) {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toastMessage');
-            
-            toastMessage.textContent = message;
-            toast.classList.remove('hidden');
-            toast.classList.add('toast-enter');
-            
-            setTimeout(() => {
-                toast.classList.remove('toast-enter');
-                toast.classList.add('toast-exit');
-                setTimeout(() => {
-                    toast.classList.add('hidden');
-                    toast.classList.remove('toast-exit');
-                }, 300);
-            }, duration);
+          // music
+          songs: [],
+          loading: true,
+          search: '',
+
+          // playback
+          currentSong: null,
+          currentIndex: -1,
+          isPlaying: false,
+          currentTime: 0,
+          volume: 0.8,
+          muted: false,
+          previousVolume: 0.8,
+
+          // upload
+          uploadModal: false,
+          uploadMode: 'file',
+          selectedFile: null,
+          ytLink: '',
+          uploadError: '',
+          uploadSubmitting: false,
+
+          // playlists (loaded when logged in)
+          playlists: [],
+
+          // toasts
+          toasts: [],
+          toastId: 0,
+
+          // socket
+          socket: null,
+        };
+      },
+
+      computed: {
+        filteredSongs() {
+          if (!this.search.trim()) return this.songs;
+          const q = this.search.toLowerCase();
+          return this.songs.filter(s =>
+            s.song_name.toLowerCase().includes(q)
+          );
+        },
+        totalSize() {
+          return this.songs.reduce((sum, s) => sum + (s.size || 0), 0);
+        },
+        progressPercent() {
+          if (!this.currentSong || !this.currentSong.length) return 0;
+          return Math.min(100, (this.currentTime / this.currentSong.length) * 100);
+        },
+      },
+
+      mounted() {
+        // Restore saved volume preference
+        const savedVol = localStorage.getItem('archive_volume');
+        const savedMute = localStorage.getItem('archive_muted');
+        if (savedVol !== null) {
+          const v = parseFloat(savedVol);
+          if (!isNaN(v) && v >= 0 && v <= 1) {
+            this.volume = v;
+            this.previousVolume = v > 0 ? v : 0.8;
+          }
         }
+        if (savedMute === 'true') this.muted = true;
 
-        // Auth Functions
-        async function login() {
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-            
-            const res = await fetch('/api/users/login', {
+        this.checkAuth();
+        this.loadSongs();
+        this.setupSocket();
+      },
+
+      watch: {
+        volume(newVal) {
+          if (this.$refs.audio) {
+            this.$refs.audio.volume = this.muted ? 0 : newVal;
+          }
+          // Adjusting the slider while muted unmutes
+          if (this.muted && newVal > 0) {
+            this.muted = false;
+          }
+          localStorage.setItem('archive_volume', String(newVal));
+        },
+        muted(newVal) {
+          if (this.$refs.audio) {
+            this.$refs.audio.volume = newVal ? 0 : this.volume;
+          }
+          localStorage.setItem('archive_muted', String(newVal));
+        },
+      },
+
+      beforeUnmount() {
+        if (this.socket) this.socket.disconnect();
+      },
+
+      methods: {
+        // ===== API helpers =====
+        async api(path, opts = {}) {
+          const res = await fetch(path, {
+            credentials: 'include',
+            ...opts,
+            headers: {
+              ...(opts.body && !(opts.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+              ...(opts.headers || {}),
+            },
+          });
+          let data = null;
+          try { data = await res.json(); } catch (e) { /* no body */ }
+          if (!res.ok) {
+            const msg = (data && (data.error || data.message)) || `Request failed (${res.status})`;
+            throw new Error(msg);
+          }
+          return data;
+        },
+
+        // ===== Auth =====
+        async checkAuth() {
+          try {
+            const u = await this.api('/api/users/');
+            if (u && u.username) {
+              this.loggedIn = true;
+              this.username = u.username;
+              this.loadPlaylists();
+            }
+          } catch (e) {
+            this.loggedIn = false;
+          }
+        },
+
+        openAuth(mode) {
+          this.authMode = mode || 'login';
+          this.authForm = { username: '', password: '', re_password: '' };
+          this.authError = '';
+          this.authModal = true;
+        },
+        closeAuth() {
+          this.authModal = false;
+          this.authError = '';
+        },
+        toggleAuthMode() {
+          this.authMode = this.authMode === 'login' ? 'register' : 'login';
+          this.authError = '';
+        },
+        async submitAuth() {
+          this.authError = '';
+          this.authSubmitting = true;
+          try {
+            if (this.authMode === 'login') {
+              const r = await this.api('/api/users/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            
-            const data = await res.json();
-            if (res.ok) {
-                currentUsername = data.username;
-                document.getElementById('authScreen').classList.add('hidden');
-                document.getElementById('mainApp').classList.remove('hidden');
-                document.getElementById('username').textContent = currentUsername;
-                showToast('logged in');
-                createStarfield();
-                loadMusic();
-                loadPlaylists();
-                loadLibrarySize();
+                body: JSON.stringify({
+                  username: this.authForm.username,
+                  password: this.authForm.password,
+                }),
+              });
+              this.loggedIn = true;
+              this.username = r.username;
+              this.toast('Signed in', `Welcome back, ${r.username}.`);
+              this.closeAuth();
+              this.loadPlaylists();
             } else {
-                showToast(data.error);
-            }
-        }
-
-        async function register() {
-            const username = document.getElementById('regUsername').value;
-            const password = document.getElementById('regPassword').value;
-            const re_password = document.getElementById('regRePassword').value;
-            
-            const res = await fetch('/api/users/register', {
+              await this.api('/api/users/register', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password, re_password })
-            });
-            
-            const data = await res.json();
-            if (res.ok) {
-                showToast('account created');
-                showLogin();
+                body: JSON.stringify({
+                  username: this.authForm.username,
+                  password: this.authForm.password,
+                  re_password: this.authForm.re_password,
+                }),
+              });
+              this.toast('Account created', 'Now sign in.');
+              this.authMode = 'login';
+            }
+          } catch (e) {
+            this.authError = e.message;
+          } finally {
+            this.authSubmitting = false;
+          }
+        },
+        async logout() {
+          try {
+            await this.api('/api/users/logout', { method: 'POST' });
+            this.loggedIn = false;
+            this.username = '';
+            this.playlists = [];
+            this.toast('Signed out', 'See you soon.');
+          } catch (e) {
+            this.toast('Error', e.message, 'error');
+          }
+        },
+
+        // ===== Songs =====
+        async loadSongs() {
+          this.loading = true;
+          try {
+            this.songs = await this.api('/api/music/');
+          } catch (e) {
+            this.toast('Error loading library', e.message, 'error');
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        async confirmDelete(song) {
+          if (!confirm(`Delete "${this.cleanName(song.song_name)}"? This cannot be undone.`)) return;
+          try {
+            await this.api(`/api/music/delete/${song.id}`, { method: 'DELETE' });
+            // socket event will update the list, but update locally too for snappiness
+            this.songs = this.songs.filter(s => s.id !== song.id);
+            if (this.currentSong && this.currentSong.id === song.id) {
+              this.stopPlayback();
+            }
+            this.toast('Deleted', this.cleanName(song.song_name));
+          } catch (e) {
+            this.toast('Error', e.message, 'error');
+          }
+        },
+
+        // ===== Upload =====
+        openUpload() {
+          this.uploadModal = true;
+          this.uploadMode = 'file';
+          this.selectedFile = null;
+          this.ytLink = '';
+          this.uploadError = '';
+        },
+        closeUpload() {
+          this.uploadModal = false;
+        },
+        handleFileSelect(e) {
+          const f = e.target.files[0];
+          if (f) this.selectedFile = f;
+        },
+        async submitUpload() {
+          this.uploadError = '';
+          this.uploadSubmitting = true;
+          try {
+            if (this.uploadMode === 'file') {
+              if (!this.selectedFile) throw new Error('Choose a file first.');
+              const fd = new FormData();
+              fd.append('file', this.selectedFile);
+              await this.api('/api/music/', { method: 'POST', body: fd });
+              this.toast('Uploaded', this.selectedFile.name);
             } else {
-                showToast(data.error);
-            }
-        }
-
-        async function logout() {
-            await fetch('/api/users/logout', { method: 'POST' });
-            showToast('logged out');
-            setTimeout(() => location.reload(), 1000);
-        }
-
-        function showLogin() {
-            document.getElementById('loginForm').classList.remove('hidden');
-            document.getElementById('registerForm').classList.add('hidden');
-        }
-
-        function showRegister() {
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('registerForm').classList.remove('hidden');
-        }
-
-        // View Functions
-        function showView(view) {
-            document.getElementById('libraryView').classList.add('hidden');
-            document.getElementById('playlistsView').classList.add('hidden');
-            document.getElementById('uploadView').classList.add('hidden');
-            
-            document.querySelectorAll('nav button').forEach(btn => {
-                btn.classList.remove('text-white');
-                btn.querySelector('div').style.transform = 'scaleX(0)';
-            });
-            
-            if (view === 'library') {
-                document.getElementById('libraryView').classList.remove('hidden');
-                document.getElementById('libraryTab').classList.add('text-white');
-                document.querySelector('#libraryTab div').style.transform = 'scaleX(1)';
-                loadLibrarySize();
-            } else if (view === 'playlists') {
-                document.getElementById('playlistsView').classList.remove('hidden');
-                document.getElementById('playlistsTab').classList.add('text-white');
-                document.querySelector('#playlistsTab div').style.transform = 'scaleX(1)';
-                loadPlaylists();
-            } else if (view === 'upload') {
-                document.getElementById('uploadView').classList.remove('hidden');
-                document.getElementById('uploadTab').classList.add('text-white');
-                document.querySelector('#uploadTab div').style.transform = 'scaleX(1)';
-            }
-        }
-
-        // Music Functions
-        async function loadMusic() {
-            const res = await fetch('/api/music/');
-            allSongs = await res.json();
-            filteredSongs = allSongs;
-            displayMusic(filteredSongs);
-            updateSongCount();
-        }
-
-        async function loadLibrarySize() {
-            const res = await fetch('/api/music/size');
-            const data = await res.json();
-            const sizeMB = data.message.size.toFixed(2);
-            document.getElementById('librarySize').textContent = `${sizeMB} mb total`;
-        }
-        
-        function updateSongCount() {
-            const count = filteredSongs.length;
-            const total = allSongs.length;
-            const countEl = document.getElementById('songCount');
-            if (countEl) {
-                if (count === total) {
-                    countEl.textContent = `${total} songs`;
-                } else {
-                    countEl.textContent = `${count} of ${total} songs`;
-                }
-            }
-        }
-
-        function searchMusic(query) {
-            const lowerQuery = query.toLowerCase().trim();
-            
-            if (!lowerQuery) {
-                filteredSongs = allSongs;
-            } else {
-                filteredSongs = allSongs.filter(song => 
-                    song.song_name.toLowerCase().includes(lowerQuery)
-                );
-            }
-            
-            displayMusic(filteredSongs);
-            updateSongCount();
-        }
-
-        function displayMusic(songs) {
-            const grid = document.getElementById('musicGrid');
-            const noResults = document.getElementById('noResults');
-            
-            if (songs.length === 0) {
-                grid.classList.add('hidden');
-                noResults.classList.remove('hidden');
-                return;
-            }
-            
-            grid.classList.remove('hidden');
-            noResults.classList.add('hidden');
-            
-            grid.innerHTML = songs.map(song => `
-                <div class="group gradient-border">
-                    <img src="${song.cover}" class="w-full aspect-square object-cover mb-3 border border-gray-900 group-hover:border-gray-700 transition cursor-pointer" onclick="playSong(${song.id})" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23111%22 width=%22200%22 height=%22200%22/%3E%3C/svg%3E'">
-                    <div class="text-sm truncate mb-1">${song.song_name}</div>
-                    <div class="text-xs text-gray-500 mb-3">${formatDuration(song.length)}</div>
-                    <div class="flex gap-3 text-xs">
-                        <button onclick="showAddToPlaylistModal(${song.id})" class="text-gray-500 hover:text-white transition">add</button>
-                        <button onclick="showDeleteModal(${song.id})" class="text-gray-500 hover:text-white transition">delete</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function playSong(songId) {
-            const song = allSongs.find(s => s.id === songId);
-            if (!song) return;
-            
-            currentSong = song;
-            currentSongIndex = allSongs.findIndex(s => s.id === songId);
-            
-            const audio = document.getElementById('audioPlayer');
-            audio.src = `/api/music/stream/${songId}`;
-            audio.play();
-            
-            document.getElementById('musicPlayer').classList.remove('hidden');
-            const playerCover = document.getElementById('playerCover');
-            playerCover.src = song.cover;
-            playerCover.style.animation = 'pulse 2s ease-in-out infinite';
-            document.getElementById('playerTitle').textContent = song.song_name;
-            document.getElementById('playPauseBtn').textContent = 'pause';
-            
-            audio.ontimeupdate = () => {
-                const current = formatDuration(Math.floor(audio.currentTime));
-                const total = formatDuration(song.length);
-                document.getElementById('playerTime').textContent = `${current} / ${total}`;
-            };
-            
-            // Auto-play next song when current song ends
-            audio.onended = () => {
-                nextSong();
-            };
-        }
-
-        function nextSong() {
-            if (allSongs.length === 0) return;
-            
-            const nextIndex = (currentSongIndex + 1) % allSongs.length;
-            const nextSongId = allSongs[nextIndex].id;
-            playSong(nextSongId);
-        }
-
-        function previousSong() {
-            if (allSongs.length === 0) return;
-            
-            const prevIndex = currentSongIndex - 1 < 0 ? allSongs.length - 1 : currentSongIndex - 1;
-            const prevSongId = allSongs[prevIndex].id;
-            playSong(prevSongId);
-        }
-
-        function playPause() {
-            const audio = document.getElementById('audioPlayer');
-            const btn = document.getElementById('playPauseBtn');
-            const playerCover = document.getElementById('playerCover');
-            
-            if (audio.paused) {
-                audio.play();
-                btn.textContent = 'pause';
-                playerCover.style.animation = 'pulse 2s ease-in-out infinite';
-            } else {
-                audio.pause();
-                btn.textContent = 'play';
-                playerCover.style.animation = 'none';
-            }
-        }
-
-        function stopMusic() {
-            const audio = document.getElementById('audioPlayer');
-            const playerCover = document.getElementById('playerCover');
-            audio.pause();
-            audio.currentTime = 0;
-            document.getElementById('playPauseBtn').textContent = 'play';
-            playerCover.style.animation = 'none';
-            currentSong = null;
-            currentSongIndex = -1;
-        }
-
-        function setVolume(value) {
-            // Use exponential curve for more sensitive control at lower volumes
-            const normalizedVolume = (value / 100) ** 2;
-            document.getElementById('audioPlayer').volume = normalizedVolume;
-        }
-
-        function showDeleteModal(songId) {
-            songToDelete = songId;
-            document.getElementById('deleteModal').classList.remove('hidden');
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').classList.add('hidden');
-            songToDelete = null;
-        }
-
-        async function confirmDelete() {
-            if (!songToDelete) return;
-            
-            const res = await fetch(`/api/music/delete/${songToDelete}`, {
-                method: 'DELETE'
-            });
-            
-            const data = await res.json();
-            if (res.ok) {
-                closeDeleteModal();
-                showToast('song deleted');
-                
-                if (currentSong && currentSong.id === songToDelete) {
-                    stopMusic();
-                    document.getElementById('musicPlayer').classList.add('hidden');
-                }
-                
-                loadMusic();
-                loadLibrarySize();
-            } else {
-                showToast(data.error);
-            }
-        }
-
-        // Playlist Functions
-        async function loadPlaylists() {
-            const res = await fetch('/api/playlist/');
-            allPlaylists = await res.json();
-            displayPlaylists();
-        }
-
-        function displayPlaylists() {
-            const grid = document.getElementById('playlistsGrid');
-            grid.innerHTML = allPlaylists.map((playlist, index) => `
-                <div class="gradient-border border border-gray-900 p-6 hover:border-gray-700 cursor-pointer transition-all hover:scale-105 fade-in" style="animation-delay: ${index * 0.1}s" onclick="viewPlaylist(${playlist.id})">
-                    <div class="text-base md:text-lg mb-1">${playlist.name}</div>
-                    <div class="text-sm text-gray-500">${playlist.song_count} songs</div>
-                </div>
-            `).join('');
-            
-            document.getElementById('playlistsGrid').classList.remove('hidden');
-            document.getElementById('playlistDetail').classList.add('hidden');
-        }
-
-        async function viewPlaylist(playlistId) {
-            const res = await fetch(`/api/playlist/${playlistId}`);
-            currentPlaylist = await res.json();
-            
-            document.getElementById('playlistTitle').textContent = currentPlaylist.name;
-            document.getElementById('playlistSongs').innerHTML = currentPlaylist.songs.length > 0 ? currentPlaylist.songs.map((song, index) => `
-                <div class="gradient-border border border-gray-900 p-4 flex items-center gap-4 hover:border-gray-700 transition-all hover:scale-[1.02] fade-in" style="animation-delay: ${index * 0.05}s">
-                    <img src="${song.cover}" class="w-12 h-12 object-cover border border-gray-800 transition-transform hover:scale-110" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23111%22 width=%22100%22 height=%22100%22/%3E%3C/svg%3E'">
-                    <div class="flex-1">
-                        <div class="text-sm">${song.song_name}</div>
-                        <div class="text-xs text-gray-500 mt-1">${formatDuration(song.length)}</div>
-                    </div>
-                    <button onclick="playSong(${song.id})" class="text-sm text-gray-500 hover:text-white transition-all hover:scale-110">play</button>
-                </div>
-            `).join('') : '<div class="text-gray-500 text-center py-12 fade-in">no songs in this playlist</div>';
-            
-            document.getElementById('playlistsGrid').classList.add('hidden');
-            document.getElementById('playlistDetail').classList.remove('hidden');
-        }
-
-        function backToPlaylists() {
-            displayPlaylists();
-        }
-
-        function showCreatePlaylist() {
-            document.getElementById('createPlaylistModal').classList.remove('hidden');
-        }
-
-        function closeCreatePlaylist() {
-            document.getElementById('createPlaylistModal').classList.add('hidden');
-            document.getElementById('playlistName').value = '';
-        }
-
-        async function createPlaylist() {
-            const name = document.getElementById('playlistName').value;
-            if (!name) return showToast('enter playlist name');
-            
-            const res = await fetch('/api/playlist/create', {
+              if (!this.ytLink.trim()) throw new Error('Paste a YouTube URL.');
+              await this.api('/api/music/yt', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
+                body: JSON.stringify({ yt_link: this.ytLink.trim() }),
+              });
+              this.toast('Downloaded', 'Pulled from YouTube.');
+            }
+            this.closeUpload();
+            // socket "new_song" event will append it
+          } catch (e) {
+            this.uploadError = e.message;
+          } finally {
+            this.uploadSubmitting = false;
+          }
+        },
+
+        // ===== Playback =====
+        playSong(song, index) {
+          this.currentSong = song;
+          this.currentIndex = index;
+          this.$nextTick(() => {
+            this.$refs.audio.src = `/api/music/stream/${song.id}`;
+            this.$refs.audio.volume = this.muted ? 0 : this.volume;
+            this.$refs.audio.play()
+              .then(() => { this.isPlaying = true; })
+              .catch(err => {
+                this.toast('Playback error', err.message, 'error');
+              });
+          });
+        },
+        toggleMute() {
+          if (this.muted) {
+            this.muted = false;
+            // If volume was at 0, restore to previous
+            if (this.volume === 0) {
+              this.volume = this.previousVolume || 0.8;
+            }
+          } else {
+            this.previousVolume = this.volume > 0 ? this.volume : 0.8;
+            this.muted = true;
+          }
+        },
+        togglePlay() {
+          if (!this.currentSong) return;
+          const a = this.$refs.audio;
+          if (a.paused) {
+            a.play();
+            this.isPlaying = true;
+          } else {
+            a.pause();
+            this.isPlaying = false;
+          }
+        },
+        nextSong() {
+          if (!this.filteredSongs.length) return;
+          const next = (this.currentIndex + 1) % this.filteredSongs.length;
+          this.playSong(this.filteredSongs[next], next);
+        },
+        previousSong() {
+          if (!this.filteredSongs.length) return;
+          // restart current if past 3s, else go back
+          if (this.currentTime > 3) {
+            this.$refs.audio.currentTime = 0;
+            return;
+          }
+          const prev = (this.currentIndex - 1 + this.filteredSongs.length) % this.filteredSongs.length;
+          this.playSong(this.filteredSongs[prev], prev);
+        },
+        stopPlayback() {
+          this.$refs.audio.pause();
+          this.$refs.audio.src = '';
+          this.currentSong = null;
+          this.currentIndex = -1;
+          this.isPlaying = false;
+          this.currentTime = 0;
+        },
+        seek(e) {
+          if (!this.currentSong) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const pct = (e.clientX - rect.left) / rect.width;
+          this.$refs.audio.currentTime = pct * this.currentSong.length;
+        },
+        onTimeUpdate() {
+          this.currentTime = this.$refs.audio.currentTime;
+        },
+        onLoadedMetadata() {
+          // If the server didn't catch duration, use the audio element's
+          if (this.currentSong && (!this.currentSong.length || this.currentSong.length === 0)) {
+            this.currentSong.length = Math.floor(this.$refs.audio.duration);
+          }
+        },
+        onEnded() {
+          this.nextSong();
+        },
+
+        // ===== Playlists =====
+        async loadPlaylists() {
+          if (!this.loggedIn) return;
+          try {
+            this.playlists = await this.api('/api/playlist/');
+          } catch (e) {
+            // silently ignore
+          }
+        },
+
+        // ===== Socket =====
+        setupSocket() {
+          try {
+            this.socket = io({ withCredentials: true });
+            this.socket.on('new_song', (song) => {
+              if (!this.songs.find(s => s.id === song.id)) {
+                this.songs.push(song);
+                this.toast('New track', this.cleanName(song.song_name));
+              }
             });
-            
-            if (res.ok) {
-                closeCreatePlaylist();
-                showToast('playlist created');
-                loadPlaylists();
-            }
-        }
-
-        function showAddToPlaylistModal(songId) {
-            selectedSongForPlaylist = songId;
-            const list = document.getElementById('playlistSelectList');
-            
-            if (allPlaylists.length === 0) {
-                list.innerHTML = '<div class="text-gray-500 text-center py-8 fade-in">no playlists yet</div>';
-            } else {
-                list.innerHTML = allPlaylists.map((playlist, index) => `
-                    <button onclick="addSongToPlaylist(${playlist.id})" class="w-full text-left p-4 border border-gray-900 hover:border-gray-700 transition-all hover:scale-105 fade-in" style="animation-delay: ${index * 0.05}s">
-                        ${playlist.name}
-                    </button>
-                `).join('');
-            }
-            
-            document.getElementById('addToPlaylistModal').classList.remove('hidden');
-        }
-
-        function closeAddToPlaylist() {
-            document.getElementById('addToPlaylistModal').classList.add('hidden');
-            selectedSongForPlaylist = null;
-        }
-
-        async function addSongToPlaylist(playlistId) {
-            const res = await fetch(`/api/playlist/${playlistId}/songs`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ song_id: selectedSongForPlaylist })
+            this.socket.on('song_removed', (song) => {
+              this.songs = this.songs.filter(s => s.id !== song.id);
             });
-            
-            const data = await res.json();
-            if (res.ok) {
-                showToast('added to playlist');
-                closeAddToPlaylist();
-                loadPlaylists();
-            } else {
-                showToast(data.error);
-            }
-        }
+          } catch (e) {
+            console.warn('Socket connection failed', e);
+          }
+        },
 
-        // Upload Functions
-        async function uploadFile() {
-            const input = document.getElementById('fileInput');
-            if (!input.files[0]) return showToast('select a file');
-            
-            const uploadBtn = document.getElementById('uploadFileBtn');
-            uploadBtn.textContent = 'uploading...';
-            uploadBtn.disabled = true;
-            
-            const formData = new FormData();
-            formData.append('file', input.files[0]);
-            
-            const res = await fetch('/api/music/', {
-                method: 'POST',
-                body: formData
-            });
-            
-            uploadBtn.textContent = 'upload file';
-            uploadBtn.disabled = false;
-            
-            if (res.ok) {
-                showToast('file uploaded');
-                input.value = '';
-                loadMusic();
-                loadLibrarySize();
-            } else {
-                const data = await res.json();
-                showToast(data.error);
-            }
-        }
+        // ===== Toasts =====
+        toast(title, body, type = 'info') {
+          const id = ++this.toastId;
+          this.toasts.push({ id, title, body, type });
+          setTimeout(() => {
+            this.toasts = this.toasts.filter(t => t.id !== id);
+          }, 3800);
+        },
 
-        async function uploadYouTube() {
-            const link = document.getElementById('ytLink').value;
-            if (!link) return showToast('enter youtube url');
-            
-            const uploadBtn = document.getElementById('uploadYtBtn');
-            uploadBtn.textContent = 'downloading...';
-            uploadBtn.disabled = true;
-            
-            const res = await fetch('/api/music/yt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ yt_link: link })
-            });
-            
-            uploadBtn.textContent = 'download';
-            uploadBtn.disabled = false;
-            
-            if (res.ok) {
-                showToast('youtube download complete');
-                document.getElementById('ytLink').value = '';
-                loadMusic();
-                loadLibrarySize();
-            } else {
-                const data = await res.json();
-                showToast(data.error);
-            }
-        }
-
-        // Utility Functions
-        function formatDuration(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
-        }
-
-        // Check if user is already logged in
-        async function checkLoginStatus() {
-            try {
-                const res = await fetch('/api/users/');
-                if (res.ok) {
-                    const data = await res.json();
-                    currentUsername = data.username;
-                    document.getElementById('authScreen').classList.add('hidden');
-                    document.getElementById('mainApp').classList.remove('hidden');
-                    document.getElementById('username').textContent = currentUsername;
-                    loadMusic();
-                    loadPlaylists();
-                    loadLibrarySize();
-                    showView('library');
-                    createStarfield();
-                }
-            } catch (error) {
-                // User not logged in, show login screen
-            }
-        }
-        
-        // Create starfield background
-        function createStarfield(containerId = 'starfield') {
-            const starfield = document.getElementById(containerId);
-            if (!starfield || starfieldIntervals[containerId]) return;
-            
-            // Create stars continuously for flying effect
-            starfieldIntervals[containerId] = setInterval(() => {
-                createFlyingStar(containerId);
-            }, 50); // Create a new star every 50ms
-            
-            // Create initial batch of stars
-            for (let i = 0; i < 30; i++) {
-                setTimeout(() => createFlyingStar(containerId), i * 50);
-            }
-        }
-        
-        function createFlyingStar(containerId) {
-            const starfield = document.getElementById(containerId);
-            if (!starfield) return;
-            
-            const star = document.createElement('div');
-            const size = Math.random();
-            
-            // Determine star size class
-            if (size > 0.85) {
-                star.className = 'star star-large';
-            } else if (size > 0.6) {
-                star.className = 'star star-medium';
-            } else {
-                star.className = 'star star-small';
-            }
-            
-            // Random angle for radial movement from center
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 1000 + Math.random() * 500; // How far the star travels
-            
-            // Calculate end position
-            const endX = Math.cos(angle) * distance;
-            const endY = Math.sin(angle) * distance;
-            
-            // Random speed (1-3 seconds)
-            const speed = 1.5 + Math.random() * 1.5;
-            const scale = 2 + Math.random() * 4;
-            
-            // Set animation timing
-            star.style.animation = `starfly ${speed}s linear forwards`;
-            
-            // Create inline keyframe animation
-            const animationName = `starfly-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            const keyframes = `
-                @keyframes ${animationName} {
-                    0% {
-                        transform: translate(-50%, -50%) translate(0px, 0px) scale(0.1);
-                        opacity: 0;
-                    }
-                    5% {
-                        opacity: 1;
-                    }
-                    95% {
-                        opacity: 1;
-                    }
-                    100% {
-                        transform: translate(-50%, -50%) translate(${endX}px, ${endY}px) scale(${scale});
-                        opacity: 0;
-                    }
-                }
-            `;
-            
-            // Inject keyframes
-            const styleSheet = document.styleSheets[0];
-            styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
-            star.style.animation = `${animationName} ${speed}s linear forwards`;
-            
-            starfield.appendChild(star);
-            
-            // Remove star after animation completes
-            setTimeout(() => {
-                star.remove();
-            }, speed * 1000);
-        }
-        
-        function createShootingStar(containerId = 'starfield') {
-            // Not used in flying mode
-        }
-
-        // Set default volume and check login on load
-        document.getElementById('audioPlayer').volume = 0.25; // 50 on slider with exponential curve
-        
-        // Create starfield for login page
-        createStarfield('authStarfield');
-        
-        checkLoginStatus();
-    </script>
+        // ===== Formatting =====
+        formatDuration(sec) {
+          if (!sec || isNaN(sec)) return '0:00';
+          const s = Math.floor(sec);
+          const m = Math.floor(s / 60);
+          const r = s % 60;
+          return `${m}:${r.toString().padStart(2, '0')}`;
+        },
+        formatTotalDuration() {
+          const total = this.songs.reduce((sum, s) => sum + (s.length || 0), 0);
+          const h = Math.floor(total / 3600);
+          const m = Math.floor((total % 3600) / 60);
+          if (h > 0) return `${h}h ${m}m`;
+          return `${m}m`;
+        },
+        cleanName(name) {
+          if (!name) return 'Untitled';
+          // Strip common extensions for display
+          return name.replace(/\.(mp3|wav|flac|m4a|webm|mp4|opus)$/i, '');
+        },
+        hasValidCover(song) {
+          if (!song || !song.cover) return false;
+          // Server default path doesn't actually serve — skip those
+          if (song.cover.startsWith('/app/covers/')) return false;
+          return true;
+        },
+        onCoverError(e) {
+          // Replace with fallback by hiding the img — Vue's v-if/v-else handles new images
+          e.target.style.display = 'none';
+        },
+      },
+    }).mount('#app');
+  </script>
 </body>
 </html>
