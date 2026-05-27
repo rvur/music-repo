@@ -100,7 +100,6 @@ def yt_upload():
 
 
 @music_bp.route("/stream/<int:song_id>", methods=["GET"])
-@login_required
 def stream_music(song_id):
 
     song = Music.query.get(song_id)
@@ -134,7 +133,6 @@ def delete_music(song_id):
     return jsonify({"message": "Song deleted"}), 200
 
 @music_bp.route("/size", methods=["GET"])
-@login_required
 def total_size():
     
     all_songs = Music.query.all()
