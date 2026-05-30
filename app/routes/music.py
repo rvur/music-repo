@@ -8,17 +8,19 @@ from werkzeug.utils import secure_filename
 import os
 import mutagen
 
+
 music_bp = Blueprint("music", __name__)
 
 @music_bp.route("/", methods=['GET'])
-def get_music():
-    print(session.get("logged_in"))
+def get_music() -> dict:
+    """Returns all song data in json format"""
     all_songs = Music.query.all()
     return jsonify([song.to_dict() for song in all_songs])
 
 @music_bp.route("/", methods=['POST'])
 @login_required
-def upload_music():
+def upload_music() -> dict:
+    """Creates new song entry through user upload"""
     
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
@@ -56,7 +58,8 @@ def upload_music():
 
 @music_bp.route("/yt", methods=["POST"])
 @login_required
-def yt_upload():
+def yt_upload() -> dict:
+    """Downloads song from YouTube and creates a new entry"""
     data = request.get_json()
 
     if not data.get("yt_link"):
@@ -100,7 +103,8 @@ def yt_upload():
 
 
 @music_bp.route("/stream/<int:song_id>", methods=["GET"])
-def stream_music(song_id):
+def stream_music(song_id:int) -> object:
+    """Streams song by song_id"""
 
     song = Music.query.get(song_id)
     if not song:
@@ -117,7 +121,8 @@ def stream_music(song_id):
 
 @music_bp.route("/delete/<int:song_id>", methods=["DELETE"])
 @login_required
-def delete_music(song_id):
+def delete_music(song_id:int) -> dict:
+    """Deletes song entry based on song_id"""
     song = Music.query.filter_by(id=song_id).first()
     if not song:
         return jsonify({"error": "Song does not exist"}), 404
@@ -133,7 +138,8 @@ def delete_music(song_id):
     return jsonify({"message": "Song deleted"}), 200
 
 @music_bp.route("/size", methods=["GET"])
-def total_size():
+def total_size() -> dict:
+    """Returns size (megabytes) of all songs in archive"""
     
     all_songs = Music.query.all()
     total_mb = 0
@@ -141,3 +147,36 @@ def total_size():
         total_mb += song.song_size
     return jsonify({"message": {"size": total_mb}})
 
+@music_bp.route("/votes/<int:song_id>", methods=["GET"])
+def number_votes(song_id:int) -> dict:
+    """Returns number of votes for a given song"""
+    song = Music.query.filter_by(id=song_id).first()
+    if not song:
+        return jsonify({"error": "Song does not exist"}), 404
+    if not os.path.exists(song.file_path):
+        return jsonify({"error": "Song not found on server"}), 404
+    
+    votes = song.to_dict()['votes']
+    return jsonify({'votes': votes}), 200
+
+@music_bp.route("/upvote/<int:song_id>", methods=["POST"])
+def upvote(song_id:int) -> dict:
+    """Upvote a song increasing number of votes"""
+    song = Music.query.filter_by(id=song_id).first()
+
+    song.votes += 1
+    db.session.commit()
+
+    return jsonify({"message": f"{song.song_name} has been upvoted!",
+                    "votes": song.votes}), 200
+
+@music_bp.route("/downvote/<int:song_id>", methods=["POST"])
+def downvote(song_id:int) -> dict:
+    """Downvote a song decreasing number of votes"""
+    song = Music.query.filter_by(id=song_id).first()
+
+    song.votes -= 1
+    db.session.commit()
+
+    return jsonify({"message": f"{song.song_name} has been downvoted!",
+                    "votes": song.votes}), 200

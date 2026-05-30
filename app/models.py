@@ -40,6 +40,7 @@ class Music(db.Model):
     song_length = db.Column(db.Integer, nullable=False)
     song_size = db.Column(db.Float, nullable=False)
     cover_image = db.Column(db.String(500), nullable=False, default="/app/covers/default.png")
+    votes = db.Column(db.Integer, nullable=False, default=0)
 
     def to_dict(self):
         song_dict = {
@@ -48,7 +49,21 @@ class Music(db.Model):
             'file_path': self.file_path,
             'length': self.song_length,
             'cover': self.cover_image,
-            'size': self.song_size
+            'size': self.song_size,
+            'votes': self.votes
         }
         return song_dict
+
+class Comments(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(50), nullable=False)
+    content = db.Column(db.String(500), nullable=False)
+
+    def to_dict(self):
+        comment_dict = {
+            'id': self.id,
+            'name': self.name,
+            'content': self.content
+        }
+        return comment_dict
 

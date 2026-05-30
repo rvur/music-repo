@@ -1,1458 +1,658 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Personal Music Collection</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Static — a quiet music archive</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.prod.js"></script>
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+  :root{
+    --paper:#f3eee2; --paper-2:#faf6ec; --cream:#fdfbf5;
+    --ink:#222a22; --ink-soft:#3a423a; --muted:#71776b; --faint:#a0a191;
+    --line:#e4dcc9; --line-2:#d7ccb4;
+    --green:#33503f; --green-deep:#243a2d;
+    --green-soft:rgba(51,80,63,.08); --green-mid:rgba(51,80,63,.16);
+    --clay:#a85d3c; --clay-soft:rgba(168,93,60,.12); --bad:#9c4a3a;
+    --on-art:#f5f0e4;
+    --topbar:rgba(243,238,226,.82);
+    --shadow:0 30px 70px -30px rgba(36,42,34,.4);
+    --radius:14px; --radius-sm:10px; --player-h:88px; --top-h:64px;
+    color-scheme:light; font-synthesis:none;
+  }
+  :root.dark{
+    --paper:#161a16; --paper-2:#1c211c; --cream:#222823;
+    --ink:#ece5d4; --ink-soft:#cdc7b6; --muted:#9b9d8e; --faint:#70736a;
+    --line:#2a302a; --line-2:#3a423b;
+    --green:#8cbb9d; --green-deep:#79a98b;
+    --green-soft:rgba(140,187,157,.1); --green-mid:rgba(140,187,157,.2);
+    --clay:#d08a63; --clay-soft:rgba(208,138,99,.14); --bad:#d98a72;
+    --on-art:#f5f0e4;
+    --topbar:rgba(22,26,22,.82);
+    --shadow:0 30px 70px -30px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:"Hanken Grotesk",sans-serif;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;line-height:1.55;transition:background .3s,color .3s}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,textarea{font-family:inherit}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:var(--green);color:var(--cream)}
+  .serif{font-family:"Fraunces",serif}
 
-  <style>
-    :root {
-      --bg: #0d0b0a;
-      --surface: #181513;
-      --surface-hi: #221d1a;
-      --border: #2a2522;
-      --border-hi: #3a342f;
-      --text: #f0e9dc;
-      --text-muted: #857c70;
-      --text-dim: #5a5249;
-      --accent: #d4a86a;
-      --accent-soft: rgba(212, 168, 106, 0.12);
-      --accent-dim: #8a6f44;
-      --danger: #c75d4a;
-      --danger-soft: rgba(199, 93, 74, 0.12);
-      --shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
-      --serif: 'Fraunces', Georgia, serif;
-      --mono: 'JetBrains Mono', ui-monospace, monospace;
-    }
+  /* ===== TOP BAR ===== */
+  .topbar{position:sticky;top:0;z-index:45;height:var(--top-h);display:flex;align-items:center;gap:26px;
+    padding:0 clamp(20px,5vw,60px);border-bottom:1px solid var(--line);
+    background:var(--topbar);backdrop-filter:blur(14px) saturate(1.3)}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .mark{width:28px;height:28px;flex:none;color:var(--green);display:grid;place-items:center}
+  .brand .mark svg{width:28px;height:28px}
+  .brand h1{font-family:"Fraunces";font-weight:500;font-size:21px;letter-spacing:-.01em;line-height:1}
+  .top-nav{display:flex;gap:22px;margin-left:14px}
+  .top-nav a{font-size:14px;font-weight:500;color:var(--muted);transition:.15s;padding:4px 0;border-bottom:1.5px solid transparent}
+  .top-nav a:hover{color:var(--ink)}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+  .theme-btn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--ink-soft);
+    border:1px solid var(--line-2);transition:.18s}
+  .theme-btn:hover{color:var(--green);border-color:var(--green)}
+  .theme-btn svg{width:18px;height:18px}
+  .who{display:flex;align-items:center;gap:9px}
+  .who .ava{width:34px;height:34px;border-radius:50%;flex:none;background:var(--green);color:var(--cream);
+    display:grid;place-items:center;font-weight:600;font-size:14px;text-transform:uppercase}
+  .who .nm{font-size:13.5px;font-weight:600;line-height:1.2}
+  .who .nm small{display:block;color:var(--muted);font-size:10.5px;font-weight:500}
+  .signin{display:inline-flex;align-items:center;gap:8px;color:var(--green);font-weight:600;font-size:14px;transition:.15s}
+  .signin:hover{color:var(--green-deep)}
+  .signin svg{width:16px;height:16px}
+  .iconb{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--faint);transition:.14s}
+  .iconb:hover{color:var(--ink);background:var(--paper-2)}
+  .iconb.danger:hover{color:var(--bad);background:var(--clay-soft)}
+  .iconb svg{width:16px;height:16px}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* ===== PAGE ===== */
+  .page{max-width:1020px;margin:0 auto;padding:0 clamp(20px,5vw,40px) calc(var(--player-h) + 60px)}
+  .section{scroll-margin-top:calc(var(--top-h) + 24px);padding-top:64px}
+  .section:first-child{padding-top:48px}
+  .section + .section{border-top:1px solid var(--line);margin-top:64px;padding-top:56px}
 
-    html, body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--serif);
-      font-weight: 400;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-    }
+  .head{margin-bottom:34px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
+  .head .eyebrow{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--clay);font-weight:600;margin-bottom:11px}
+  .head h2{font-family:"Fraunces";font-weight:400;font-size:clamp(30px,4.4vw,46px);letter-spacing:-.02em;line-height:1;color:var(--ink)}
+  .head p{color:var(--muted);margin-top:12px;font-size:15px;max-width:48ch}
+  .head .right{display:flex;align-items:center;gap:18px}
+  .stat-pair{display:flex;gap:20px}
+  .stat{text-align:right}
+  .stat .v{font-family:"Fraunces";font-weight:500;font-size:20px;line-height:1}
+  .stat .k{font-size:11px;color:var(--muted);letter-spacing:.06em}
 
-    body {
-      background-image:
-        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212, 168, 106, 0.08), transparent),
-        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(199, 93, 74, 0.04), transparent);
-      background-attachment: fixed;
-      padding-bottom: 110px;
-    }
+  .btn{border-radius:var(--radius-sm);padding:10px 18px;font-weight:600;font-size:14px;
+    display:inline-flex;align-items:center;gap:8px;transition:.16s;white-space:nowrap}
+  .btn svg{width:16px;height:16px}
+  .btn-green{background:var(--green);color:var(--cream)}
+  .btn-green:hover{background:var(--green-deep)}
+  .btn-green:disabled{opacity:.5;cursor:default}
+  .btn-line{border:1px solid var(--line-2);color:var(--ink)}
+  .btn-line:hover{border-color:var(--green);color:var(--green)}
+  .btn-full{width:100%;justify-content:center;padding:12px;margin-top:4px}
 
-    button {
-      font-family: inherit;
-      cursor: pointer;
-      border: none;
-      background: none;
-      color: inherit;
-    }
+  /* toolbar */
+  .toolbar{display:flex;gap:14px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .search{flex:1;min-width:200px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line-2);padding:8px 2px;transition:.16s}
+  .search:focus-within{border-color:var(--green)}
+  .search svg{width:17px;height:17px;color:var(--faint);flex:none}
+  .search input{background:none;border:none;outline:none;color:var(--ink);font-size:15px;width:100%}
+  .search input::placeholder{color:var(--faint)}
+  .sorts{display:flex;gap:18px}
+  .sorts button{font-size:13.5px;font-weight:500;color:var(--muted);transition:.14s;padding-bottom:3px;border-bottom:1.5px solid transparent}
+  .sorts button:hover{color:var(--ink)}
+  .sorts button.on{color:var(--green);border-color:var(--green);font-weight:600}
 
-    input, textarea {
-      font-family: inherit;
-      color: inherit;
-    }
+  /* track list */
+  .track-list{display:flex;flex-direction:column}
+  .track{display:grid;grid-template-columns:42px 1fr auto 70px auto;gap:18px;align-items:center;
+    padding:13px 10px;border-bottom:1px solid var(--line);transition:.14s;border-radius:6px}
+  .track:hover{background:var(--paper-2)}
+  .track.playing{background:var(--green-soft)}
+  .t-art{position:relative;width:42px;height:42px;border-radius:8px;overflow:hidden;flex:none;cursor:pointer}
+  .t-art img{width:100%;height:100%;object-fit:cover;display:block}
+  .t-art .ph{width:100%;height:100%;display:grid;place-items:center;font-family:"Fraunces";font-weight:500;font-size:17px;color:var(--on-art)}
+  .t-art .ov{position:absolute;inset:0;background:rgba(24,38,30,.55);display:grid;place-items:center;opacity:0;transition:.15s}
+  .t-art:hover .ov{opacity:1}
+  .t-art .ov svg{width:18px;height:18px;color:#f5f0e4}
+  .t-main{min-width:0;cursor:pointer}
+  .t-name{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+  .track.playing .t-name{color:var(--green)}
+  .t-sub{font-size:12.5px;color:var(--faint);margin-top:1px}
+  .votes{display:flex;align-items:center;gap:5px}
+  .vbtn{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;color:var(--faint);transition:.14s}
+  .vbtn:hover{color:var(--green);background:var(--green-soft)}
+  .vbtn.down:hover{color:var(--clay);background:var(--clay-soft)}
+  .vbtn svg{width:14px;height:14px}
+  .vcount{min-width:24px;text-align:center;font-weight:600;font-size:14px;color:var(--ink-soft)}
+  .vcount.pos{color:var(--green)} .vcount.neg{color:var(--clay)}
+  .t-len{text-align:right;color:var(--muted);font-size:13.5px;font-variant-numeric:tabular-nums}
+  .t-acts{display:flex;gap:3px;justify-content:flex-end}
 
-    .mono { font-family: var(--mono); }
+  .eq{display:inline-flex;align-items:flex-end;gap:2px;height:14px}
+  .eq span{width:2.5px;background:var(--green);border-radius:2px;animation:eq .9s ease-in-out infinite}
+  .eq span:nth-child(2){animation-delay:.25s}.eq span:nth-child(3){animation-delay:.5s}.eq span:nth-child(4){animation-delay:.12s}
+  @keyframes eq{0%,100%{height:3px}50%{height:14px}}
 
-    /* ====== Layout ====== */
-    .app-wrap {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 32px;
-    }
+  /* playlists grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .pl-card{background:var(--paper-2);padding:24px;cursor:pointer;transition:.16s;min-height:150px;display:flex;flex-direction:column}
+  .pl-card:hover{background:var(--cream)}
+  .pl-card .ic{width:40px;height:40px;border-radius:10px;background:var(--green-soft);display:grid;place-items:center;margin-bottom:auto;color:var(--green)}
+  .pl-card .ic svg{width:20px;height:20px}
+  .pl-card h3{font-family:"Fraunces";font-weight:500;font-size:19px;margin-top:18px;letter-spacing:-.01em}
+  .pl-card .meta{color:var(--muted);font-size:13px;margin-top:4px}
+  .pl-card.add{align-items:flex-start;justify-content:center;color:var(--muted)}
+  .pl-card.add:hover{color:var(--green)}
+  .pl-card.add .plus{font-size:30px;font-weight:300;line-height:1}
+  .pl-card.add .lab{font-weight:600;font-size:14px;margin-top:8px}
 
-    /* ====== Header ====== */
-    header.topbar {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      background: rgba(13, 11, 10, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 22px 0;
-      margin-bottom: 48px;
-    }
+  /* comments */
+  .cmt-grid{display:grid;grid-template-columns:320px 1fr;gap:48px;align-items:start}
+  .cmt-form h3{font-family:"Fraunces";font-weight:500;font-size:21px}
+  .cmt-form .desc{color:var(--muted);font-size:13.5px;margin:4px 0 22px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:7px;font-weight:600}
+  .field input,.field textarea{width:100%;background:var(--cream);border:1px solid var(--line-2);border-radius:10px;padding:11px 13px;color:var(--ink);font-size:14.5px;outline:none;transition:.15s;resize:vertical}
+  .field input:focus,.field textarea:focus{border-color:var(--green)}
+  .field textarea{min-height:100px}
+  .cmt-list{display:flex;flex-direction:column}
+  .cmt{padding:18px 0;border-bottom:1px solid var(--line);display:flex;gap:14px}
+  .cmt .ava{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;color:var(--on-art);font-weight:600;text-transform:uppercase;font-size:15px;font-family:"Fraunces"}
+  .cmt .body{flex:1;min-width:0}
+  .cmt .body .nm{font-weight:600;font-size:14.5px}
+  .cmt .body .ct{color:var(--ink-soft);font-size:14px;margin-top:3px;word-break:break-word}
 
-    .topbar-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-    }
+  /* empty / prompt */
+  .empty{text-align:center;padding:70px 20px;color:var(--muted)}
+  .empty .ic{width:54px;height:54px;border-radius:50%;border:1px solid var(--line-2);display:grid;place-items:center;margin:0 auto 18px}
+  .empty .ic svg{width:24px;height:24px;color:var(--faint)}
+  .empty h3{font-family:"Fraunces";font-weight:500;font-size:21px;color:var(--ink);margin-bottom:7px}
+  .empty p{font-size:14.5px;max-width:36ch;margin:0 auto}
+  .prompt{display:flex;align-items:center;justify-content:space-between;gap:20px;background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:24px 26px;flex-wrap:wrap}
+  .prompt .pt{font-family:"Fraunces";font-weight:500;font-size:18px}
+  .prompt .ps{color:var(--muted);font-size:13.5px;margin-top:2px}
 
-    .brand {
-      display: flex;
-      align-items: baseline;
-      gap: 14px;
-    }
-    .brand-mark {
-      font-family: var(--serif);
-      font-weight: 500;
-      font-size: 28px;
-      letter-spacing: -0.02em;
-      font-style: italic;
-    }
-    .brand-sub {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
+  /* ===== PLAYER ===== */
+  .player{position:fixed;left:0;right:0;bottom:0;height:var(--player-h);z-index:40;border-top:1px solid var(--line);background:var(--topbar);backdrop-filter:blur(16px) saturate(1.3);
+    display:grid;grid-template-columns:minmax(200px,1fr) minmax(300px,2fr) minmax(160px,1fr);align-items:center;gap:24px;padding:0 clamp(16px,5vw,32px)}
+  .np-info{display:flex;align-items:center;gap:14px;min-width:0}
+  .np-art{width:52px;height:52px;border-radius:10px;overflow:hidden;flex:none;background:var(--line)}
+  .np-art img{width:100%;height:100%;object-fit:cover;display:block}
+  .np-art .ph{width:100%;height:100%;display:grid;place-items:center;font-family:"Fraunces";font-weight:500;color:var(--on-art)}
+  .np-txt{min-width:0}
+  .np-txt .nm{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .np-txt .by{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-top:1px}
+  .np-mid{display:flex;flex-direction:column;align-items:center;gap:9px}
+  .np-btns{display:flex;align-items:center;gap:18px}
+  .ctrl{color:var(--ink-soft);transition:.15s;display:grid;place-items:center}
+  .ctrl:hover{color:var(--green)}
+  .ctrl svg{width:19px;height:19px}
+  .play{width:42px;height:42px;border-radius:50%;background:var(--green);color:var(--cream);display:grid;place-items:center;transition:.16s}
+  .play:hover{background:var(--green-deep)}
+  .play svg{width:20px;height:20px}
+  .seek-row{display:flex;align-items:center;gap:11px;width:100%}
+  .tm{font-size:11.5px;color:var(--muted);min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
+  .bar{flex:1;height:4px;border-radius:3px;background:var(--line-2);position:relative;cursor:pointer}
+  .bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--green)}
+  .bar .knob{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;background:var(--green);transform:translate(-50%,-50%);opacity:0;transition:.15s}
+  .bar:hover .knob{opacity:1}
+  .np-right{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+  .vol{display:flex;align-items:center;gap:9px;width:120px}
+  .vol svg{width:17px;height:17px;color:var(--muted);flex:none;cursor:pointer}
 
-    .topbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+  /* ===== MODAL ===== */
+  .overlay{position:fixed;inset:0;z-index:80;background:rgba(20,24,20,.42);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px;animation:fade .2s}
+  .modal{width:100%;max-width:420px;background:var(--cream);border:1px solid var(--line-2);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;animation:pop .24s cubic-bezier(.2,.9,.3,1.1)}
+  .modal.wide{max-width:560px}
+  .modal-head{padding:26px 28px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .modal-head h3{font-family:"Fraunces";font-weight:500;font-size:24px;letter-spacing:-.01em}
+  .modal-head p{color:var(--muted);font-size:13.5px;margin-top:3px}
+  .modal-body{padding:22px 28px 28px}
+  .modal-body.scroll{max-height:60vh;overflow:auto}
+  .x{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--muted);transition:.15s;flex:none}
+  .x:hover{background:var(--paper);color:var(--ink)}
+  .x svg{width:17px;height:17px}
+  .tabs{display:flex;gap:24px;border-bottom:1px solid var(--line);margin-bottom:22px}
+  .tabs button{padding:0 0 10px;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s}
+  .tabs button.on{color:var(--green);border-color:var(--green)}
+  .err{background:var(--clay-soft);border:1px solid rgba(168,93,60,.3);color:var(--bad);border-radius:9px;padding:10px 13px;font-size:13px;margin-bottom:16px}
+  .drop{border:1.5px dashed var(--line-2);border-radius:12px;padding:30px 20px;text-align:center;color:var(--muted);transition:.16s;cursor:pointer}
+  .drop:hover{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+  .drop svg{width:28px;height:28px;margin:0 auto 10px;display:block}
+  .drop .fn{color:var(--green);font-weight:600;margin-top:10px;font-size:13px;word-break:break-all}
+  .hint{font-size:12px;color:var(--faint);margin-top:12px;text-align:center}
+  .pl-pick{display:flex;flex-direction:column;gap:2px;max-height:300px;overflow:auto}
+  .pl-pick button{display:flex;align-items:center;gap:13px;padding:12px;border-radius:10px;transition:.14s;text-align:left;width:100%}
+  .pl-pick button:hover{background:var(--green-soft)}
+  .pl-pick .pi{width:34px;height:34px;border-radius:9px;background:var(--green-soft);display:grid;place-items:center;flex:none;color:var(--green)}
+  .pl-pick .pi svg{width:16px;height:16px}
+  .pl-pick .pn{font-weight:600;font-size:14px}
+  .pl-pick .pm{font-size:12px;color:var(--muted)}
 
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 16px;
-      border-radius: 2px;
-      font-family: var(--mono);
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      transition: all 0.18s ease;
-      border: 1px solid transparent;
-    }
+  /* toasts */
+  .toasts{position:fixed;top:78px;right:22px;z-index:100;display:flex;flex-direction:column;gap:9px}
+  .toast{background:var(--cream);border:1px solid var(--line-2);border-radius:11px;padding:12px 15px;box-shadow:var(--shadow);display:flex;align-items:center;gap:11px;min-width:230px;max-width:330px;animation:slidein .26s cubic-bezier(.2,.9,.3,1.1)}
+  .toast .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .toast.success .dot{background:var(--green)}.toast.error .dot{background:var(--bad)}.toast.info .dot{background:var(--clay)}
+  .toast span{font-size:13.5px;font-weight:500}
 
-    .btn-ghost {
-      color: var(--text-muted);
-      border-color: var(--border-hi);
-    }
-    .btn-ghost:hover {
-      color: var(--text);
-      border-color: var(--text-muted);
-    }
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes pop{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes slidein{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .rise{animation:rise .45s both}
+  .spin{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
 
-    .btn-primary {
-      background: var(--accent);
-      color: #1a1410;
-      font-weight: 500;
-    }
-    .btn-primary:hover { background: #e2b87a; }
-
-    .btn-danger {
-      color: var(--danger);
-      border: 1px solid transparent;
-    }
-    .btn-danger:hover {
-      background: var(--danger-soft);
-    }
-
-    .btn-link {
-      color: var(--accent);
-      padding: 0;
-      font-family: var(--serif);
-      font-size: 14px;
-      text-transform: none;
-      letter-spacing: 0;
-    }
-    .btn-link:hover { text-decoration: underline; }
-
-    .user-chip {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .user-chip span { color: var(--accent); }
-
-    /* ====== Hero / Stats ====== */
-    .hero {
-      margin-bottom: 56px;
-    }
-    .hero-title {
-      font-size: clamp(40px, 6vw, 64px);
-      font-weight: 400;
-      line-height: 1.02;
-      letter-spacing: -0.03em;
-      margin-bottom: 20px;
-      font-variation-settings: 'opsz' 144;
-    }
-    .hero-title em {
-      font-style: italic;
-      color: var(--accent);
-      font-weight: 300;
-    }
-    .hero-stats {
-      display: flex;
-      gap: 36px;
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-muted);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      padding-top: 18px;
-      border-top: 1px solid var(--border);
-    }
-    .hero-stats div span {
-      color: var(--text);
-      margin-right: 4px;
-    }
-
-    /* ====== Search bar ====== */
-    .toolbar {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      margin-bottom: 28px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border);
-    }
-    .search {
-      flex: 1;
-      position: relative;
-    }
-    .search input {
-      width: 100%;
-      background: transparent;
-      border: none;
-      outline: none;
-      padding: 8px 0;
-      font-size: 18px;
-      font-family: var(--serif);
-      font-style: italic;
-      color: var(--text);
-    }
-    .search input::placeholder {
-      color: var(--text-dim);
-      font-style: italic;
-    }
-    .toolbar-meta {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-dim);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-
-    /* ====== Song list ====== */
-    .song-list { display: flex; flex-direction: column; }
-
-    .list-header {
-      display: grid;
-      grid-template-columns: 50px 1fr 100px 80px 80px;
-      gap: 16px;
-      padding: 0 14px 12px;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      border-bottom: 1px solid var(--border);
-    }
-    .list-header .h-num { text-align: center; }
-    .list-header .h-dur,
-    .list-header .h-size { text-align: right; }
-
-    .song-row {
-      display: grid;
-      grid-template-columns: 50px 1fr 100px 80px 80px;
-      gap: 16px;
-      align-items: center;
-      padding: 14px;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.15s ease;
-      cursor: pointer;
-    }
-    .song-row:hover {
-      background: var(--surface);
-    }
-    .song-row.playing {
-      background: var(--accent-soft);
-    }
-
-    .song-num {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-dim);
-      text-align: center;
-    }
-    .song-row.playing .song-num {
-      color: var(--accent);
-    }
-    .song-row:hover .song-num.playable { color: var(--text); }
-
-    .song-info {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-width: 0;
-    }
-    .cover {
-      width: 44px;
-      height: 44px;
-      border-radius: 2px;
-      object-fit: cover;
-      background: linear-gradient(135deg, #2a2522, #181513);
-      flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-    .cover-fallback {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--serif);
-      font-style: italic;
-      color: var(--accent-dim);
-      font-size: 18px;
-    }
-    .song-name {
-      font-size: 17px;
-      letter-spacing: -0.01em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .song-row.playing .song-name {
-      color: var(--accent);
-      font-style: italic;
-    }
-
-    .song-meta {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-muted);
-      text-align: right;
-    }
-    .song-actions {
-      text-align: right;
-    }
-    .icon-btn {
-      padding: 6px;
-      color: var(--text-dim);
-      transition: color 0.15s ease;
-      opacity: 0;
-    }
-    .song-row:hover .icon-btn { opacity: 1; }
-    .icon-btn:hover { color: var(--danger); }
-    .icon-btn svg { width: 16px; height: 16px; display: block; }
-
-    .empty-state {
-      text-align: center;
-      padding: 80px 20px;
-      color: var(--text-muted);
-    }
-    .empty-state h3 {
-      font-weight: 400;
-      font-size: 28px;
-      font-style: italic;
-      margin-bottom: 8px;
-      color: var(--text);
-    }
-    .empty-state p {
-      font-family: var(--mono);
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    /* ====== Player bar ====== */
-    .player {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(13, 11, 10, 0.95);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid var(--border-hi);
-      padding: 14px 32px;
-      z-index: 30;
-      box-shadow: var(--shadow);
-    }
-    .player-inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: 24px;
-      align-items: center;
-    }
-    .player-track {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-width: 0;
-    }
-    .player-track .cover { width: 52px; height: 52px; }
-    .player-track-meta { min-width: 0; }
-    .player-track-name {
-      font-size: 16px;
-      font-style: italic;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .player-track-sub {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-top: 2px;
-    }
-    .player-controls {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-    }
-    .ctrl-btn {
-      color: var(--text-muted);
-      transition: color 0.15s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .ctrl-btn:hover { color: var(--text); }
-    .ctrl-btn svg { width: 18px; height: 18px; display: block; }
-
-    .play-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: #1a1410;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.15s ease, background 0.15s ease;
-    }
-    .play-btn:hover {
-      background: #e2b87a;
-      transform: scale(1.05);
-    }
-    .play-btn svg { width: 18px; height: 18px; display: block; }
-
-    .volume-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-left: 6px;
-      padding-left: 16px;
-      border-left: 1px solid var(--border);
-    }
-    .volume-slider {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 80px;
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      outline: none;
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    .volume-slider:hover {
-      background: var(--border-hi);
-    }
-    .volume-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 12px;
-      height: 12px;
-      background: var(--accent);
-      border-radius: 50%;
-      cursor: pointer;
-      transition: transform 0.15s ease;
-      border: 2px solid var(--bg);
-    }
-    .volume-slider:hover::-webkit-slider-thumb {
-      transform: scale(1.2);
-    }
-    .volume-slider::-moz-range-thumb {
-      width: 10px;
-      height: 10px;
-      background: var(--accent);
-      border-radius: 50%;
-      cursor: pointer;
-      border: 2px solid var(--bg);
-    }
-    /* Gradient fill effect using background */
-    .volume-slider {
-      background: linear-gradient(
-        to right,
-        var(--accent) 0%,
-        var(--accent) var(--vol-pct, 80%),
-        var(--border) var(--vol-pct, 80%),
-        var(--border) 100%
-      );
-    }
-
-    .player-progress {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-    }
-    .time {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      min-width: 38px;
-    }
-    .progress {
-      flex: 1;
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      position: relative;
-      cursor: pointer;
-      overflow: hidden;
-    }
-    .progress-fill {
-      position: absolute;
-      top: 0; left: 0; bottom: 0;
-      background: var(--accent);
-      transition: width 0.1s linear;
-    }
-    .progress:hover .progress-fill {
-      background: #e2b87a;
-    }
-    .player-empty {
-      text-align: center;
-      color: var(--text-dim);
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: 18px;
-    }
-
-    /* ====== Modal ====== */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      z-index: 50;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      animation: fade 0.2s ease;
-    }
-    @keyframes fade {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    .modal {
-      background: var(--surface);
-      border: 1px solid var(--border-hi);
-      border-radius: 4px;
-      padding: 40px;
-      max-width: 460px;
-      width: 100%;
-      box-shadow: var(--shadow);
-      animation: slide 0.25s cubic-bezier(.2,.8,.3,1.2);
-    }
-    @keyframes slide {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    .modal-title {
-      font-size: 32px;
-      font-weight: 400;
-      letter-spacing: -0.02em;
-      margin-bottom: 6px;
-    }
-    .modal-title em { font-style: italic; color: var(--accent); }
-    .modal-sub {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 28px;
-    }
-    .form-group { margin-bottom: 18px; }
-    .form-group label {
-      display: block;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .form-group input[type="text"],
-    .form-group input[type="password"],
-    .form-group input[type="url"] {
-      width: 100%;
-      background: var(--bg);
-      border: 1px solid var(--border-hi);
-      padding: 12px 14px;
-      font-size: 16px;
-      border-radius: 2px;
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
-    .form-group input:focus { border-color: var(--accent); }
-
-    .file-drop {
-      border: 1px dashed var(--border-hi);
-      padding: 32px;
-      text-align: center;
-      border-radius: 2px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      color: var(--text-muted);
-    }
-    .file-drop:hover {
-      border-color: var(--accent);
-      color: var(--text);
-    }
-    .file-drop input { display: none; }
-    .file-drop .drop-hint {
-      font-style: italic;
-      font-size: 16px;
-      margin-bottom: 4px;
-    }
-    .file-drop .drop-sub {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-    .file-drop.has-file {
-      border-style: solid;
-      border-color: var(--accent-dim);
-      color: var(--text);
-    }
-
-    .form-error {
-      background: var(--danger-soft);
-      border-left: 2px solid var(--danger);
-      padding: 10px 14px;
-      font-size: 13px;
-      color: #e8a395;
-      margin-bottom: 16px;
-      font-family: var(--mono);
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      margin-top: 28px;
-    }
-    .modal-divider {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin: 24px 0;
-      color: var(--text-dim);
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-    }
-    .modal-divider::before,
-    .modal-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-
-    .tabs {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--border);
-    }
-    .tab {
-      padding: 10px 16px;
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-      transition: all 0.15s ease;
-    }
-    .tab.active {
-      color: var(--accent);
-      border-color: var(--accent);
-    }
-    .tab:hover { color: var(--text); }
-
-    /* ====== Toast ====== */
-    .toast-container {
-      position: fixed;
-      top: 100px;
-      right: 32px;
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .toast {
-      background: var(--surface-hi);
-      border: 1px solid var(--border-hi);
-      border-left: 2px solid var(--accent);
-      padding: 12px 18px;
-      border-radius: 2px;
-      font-size: 14px;
-      max-width: 320px;
-      box-shadow: var(--shadow);
-      animation: toast-in 0.3s cubic-bezier(.2,.8,.3,1.2);
-    }
-    .toast.error { border-left-color: var(--danger); }
-    .toast strong { font-style: italic; color: var(--accent); }
-    .toast.error strong { color: var(--danger); }
-    @keyframes toast-in {
-      from { transform: translateX(20px); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-
-    /* ====== Loading ====== */
-    .spinner {
-      width: 14px;
-      height: 14px;
-      border: 2px solid var(--border-hi);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      display: inline-block;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    @media (max-width: 720px) {
-      .app-wrap { padding: 0 18px; }
-      .player { padding: 12px 16px; }
-      .player-inner { grid-template-columns: 1fr; gap: 12px; }
-      .player-track { justify-content: center; }
-      .list-header { grid-template-columns: 36px 1fr 70px; }
-      .list-header .h-size, .list-header .h-act { display: none; }
-      .song-row { grid-template-columns: 36px 1fr 70px; }
-      .song-row .song-size-col, .song-row .song-actions { display: none; }
-      .hero-stats { gap: 20px; flex-wrap: wrap; }
-    }
-  </style>
+  @media(max-width:780px){
+    .top-nav{display:none}
+    .who .nm{display:none}
+    .cmt-grid{grid-template-columns:1fr;gap:30px}
+    .track{grid-template-columns:42px 1fr auto 56px}
+    .track .t-acts{display:none}
+    .head .right{width:100%;justify-content:space-between}
+    .player{grid-template-columns:1fr auto;gap:14px}
+    .np-right{display:none}.tm{display:none}
+  }
+</style>
 </head>
 <body>
-  <div id="app">
-    <!-- ===== Header ===== -->
-    <header class="topbar">
-      <div class="app-wrap topbar-inner">
-        <div class="brand">
-          <div class="brand-mark">Archive</div>
-          <div class="brand-sub">— Personal Music Vault</div>
-        </div>
-        <div class="topbar-actions">
-          <template v-if="loggedIn">
-            <button class="btn btn-ghost" @click="openUpload">+ Add</button>
-            <span class="user-chip">signed in as <span>{{ username }}</span></span>
-            <button class="btn btn-ghost" @click="logout">Sign out</button>
-          </template>
-          <template v-else>
-            <button class="btn btn-ghost" @click="openAuth('login')">Sign in</button>
-          </template>
-        </div>
-      </div>
-    </header>
+<div id="app">
 
-    <main class="app-wrap">
-      <!-- ===== Hero ===== -->
-      <section class="hero">
-        <h1 class="hero-title">Songs I listen to<br><em>Coded by me.</em></h1>
-        <div class="hero-stats">
-          <div><span class="mono">{{ songs.length }}</span> tracks</div>
-          <div><span class="mono">{{ formatTotalDuration() }}</span> listening time</div>
-          <div><span class="mono">{{ totalSize.toFixed(1) }}</span> MB on disk</div>
-          <div v-if="loggedIn"><span class="mono">{{ playlists.length }}</span> playlists</div>
-        </div>
-      </section>
-
-      <!-- ===== Toolbar ===== -->
-      <div class="toolbar">
-        <div class="search">
-          <input
-            type="text"
-            v-model="search"
-            placeholder="Search the library…"
-          />
-        </div>
-        <div class="toolbar-meta">
-          {{ filteredSongs.length }} / {{ songs.length }} shown
-        </div>
-      </div>
-
-      <!-- ===== Song list ===== -->
-      <div class="song-list" v-if="!loading">
-        <div class="list-header" v-if="filteredSongs.length">
-          <div class="h-num">#</div>
-          <div>Title</div>
-          <div class="h-dur">Length</div>
-          <div class="h-size">Size</div>
-          <div class="h-act"></div>
-        </div>
-
-        <div
-          v-for="(song, index) in filteredSongs"
-          :key="song.id"
-          class="song-row"
-          :class="{ playing: currentSong && currentSong.id === song.id }"
-          @click="playSong(song, index)"
-        >
-          <div class="song-num">
-            <template v-if="currentSong && currentSong.id === song.id && isPlaying">
-              <span style="color: var(--accent);">♪</span>
-            </template>
-            <template v-else>{{ index + 1 }}</template>
-          </div>
-
-          <div class="song-info">
-            <img
-              v-if="hasValidCover(song)"
-              :src="song.cover"
-              class="cover"
-              :alt="song.song_name"
-              @error="onCoverError($event)"
-            />
-            <div v-else class="cover cover-fallback">♫</div>
-            <div class="song-name">{{ cleanName(song.song_name) }}</div>
-          </div>
-
-          <div class="song-meta">{{ formatDuration(song.length) }}</div>
-          <div class="song-meta song-size-col">{{ song.size.toFixed(1) }} MB</div>
-
-          <div class="song-actions">
-            <button
-              v-if="loggedIn"
-              class="icon-btn"
-              @click.stop="confirmDelete(song)"
-              title="Delete"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div v-if="!filteredSongs.length" class="empty-state">
-          <h3>{{ songs.length ? 'No matches found.' : 'The catalog is empty.' }}</h3>
-          <p v-if="!songs.length && !loggedIn">Sign in to add the first track.</p>
-          <p v-else-if="!songs.length">Click "+ Add" above to begin.</p>
-          <p v-else>Try a different search.</p>
-        </div>
-      </div>
-
-      <div v-else class="empty-state">
-        <div class="spinner" style="width: 24px; height: 24px;"></div>
-      </div>
-    </main>
-
-    <!-- ===== Player ===== -->
-    <div class="player">
-      <div class="player-inner">
-        <div class="player-track" v-if="currentSong">
-          <img
-            v-if="hasValidCover(currentSong)"
-            :src="currentSong.cover"
-            class="cover"
-            :alt="currentSong.song_name"
-            @error="onCoverError($event)"
-          />
-          <div v-else class="cover cover-fallback">♫</div>
-          <div class="player-track-meta">
-            <div class="player-track-name">{{ cleanName(currentSong.song_name) }}</div>
-            <div class="player-track-sub">
-              Now playing · {{ formatDuration(currentSong.length) }}
-            </div>
-          </div>
-        </div>
-        <div v-else class="player-empty">
-          Nothing playing — pick a track above.
-        </div>
-
-        <div class="player-controls" v-if="currentSong">
-          <button class="ctrl-btn" @click="previousSong" title="Previous">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-          </button>
-          <button class="play-btn" @click="togglePlay" :title="isPlaying ? 'Pause' : 'Play'">
-            <svg v-if="isPlaying" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
-            <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          </button>
-          <button class="ctrl-btn" @click="nextSong" title="Next">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-          </button>
-          <div class="volume-group">
-            <button class="ctrl-btn" @click="toggleMute" :title="muted ? 'Unmute' : 'Mute'">
-              <svg v-if="muted || volume === 0" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0021 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 003.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-              </svg>
-              <svg v-else-if="volume < 0.5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M7 9v6h4l5 5V4l-5 5H7zm9.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-              </svg>
-            </button>
-            <input
-              type="range"
-              class="volume-slider"
-              min="0"
-              max="1"
-              step="0.01"
-              v-model.number="volume"
-              :style="{ '--vol-pct': (muted ? 0 : volume * 100) + '%' }"
-              title="Volume"
-            />
-          </div>
-        </div>
-        <div v-else></div>
-
-        <div class="player-progress" v-if="currentSong">
-          <span class="time">{{ formatDuration(Math.floor(currentTime)) }}</span>
-          <div class="progress" @click="seek($event)">
-            <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
-          </div>
-          <span class="time">{{ formatDuration(currentSong.length) }}</span>
-        </div>
-        <div v-else></div>
-      </div>
-    </div>
-
-    <!-- ===== Auth modal ===== -->
-    <div class="modal-backdrop" v-if="authModal" @click.self="closeAuth">
-      <div class="modal">
-        <h2 class="modal-title">
-          <em v-if="authMode === 'login'">Welcome back.</em>
-          <em v-else>Set up your vault.</em>
-        </h2>
-        <p class="modal-sub">
-          {{ authMode === 'login' ? 'Sign in to manage the library' : 'One account per installation' }}
-        </p>
-
-        <div v-if="authError" class="form-error">{{ authError }}</div>
-
-        <div class="form-group">
-          <label>Username</label>
-          <input type="text" v-model="authForm.username" @keyup.enter="submitAuth" autocomplete="username" />
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" v-model="authForm.password" @keyup.enter="submitAuth" autocomplete="current-password" />
-        </div>
-        <div class="form-group" v-if="authMode === 'register'">
-          <label>Confirm password</label>
-          <input type="password" v-model="authForm.re_password" @keyup.enter="submitAuth" />
-        </div>
-
-        <div class="modal-divider">{{ authMode === 'login' ? 'or' : 'or' }}</div>
-        <div style="text-align: center;">
-          <button class="btn-link" @click="toggleAuthMode">
-            {{ authMode === 'login' ? 'Create an account' : 'I already have an account' }}
-          </button>
-        </div>
-
-        <div class="form-actions">
-          <button class="btn btn-ghost" @click="closeAuth">Cancel</button>
-          <button class="btn btn-primary" @click="submitAuth" :disabled="authSubmitting">
-            <span v-if="authSubmitting" class="spinner"></span>
-            <span v-else>{{ authMode === 'login' ? 'Sign in' : 'Create' }}</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== Upload modal ===== -->
-    <div class="modal-backdrop" v-if="uploadModal" @click.self="closeUpload">
-      <div class="modal">
-        <h2 class="modal-title">Add to the <em>vault</em></h2>
-        <p class="modal-sub">Upload a file or pull from YouTube</p>
-
-        <div class="tabs">
-          <button class="tab" :class="{ active: uploadMode === 'file' }" @click="uploadMode = 'file'">File</button>
-          <button class="tab" :class="{ active: uploadMode === 'yt' }" @click="uploadMode = 'yt'">YouTube</button>
-        </div>
-
-        <div v-if="uploadError" class="form-error">{{ uploadError }}</div>
-
-        <!-- File upload -->
-        <div v-if="uploadMode === 'file'">
-          <label class="file-drop" :class="{ 'has-file': selectedFile }">
-            <div v-if="!selectedFile">
-              <div class="drop-hint">Choose an audio file</div>
-              <div class="drop-sub">mp3 · wav · flac · m4a · webm · opus</div>
-            </div>
-            <div v-else>
-              <div class="drop-hint">{{ selectedFile.name }}</div>
-              <div class="drop-sub">{{ (selectedFile.size / 1048576).toFixed(2) }} MB · ready</div>
-            </div>
-            <input type="file" accept=".mp3,.wav,.flac,.m4a,.webm,.mp4,.opus" @change="handleFileSelect" />
-          </label>
-        </div>
-
-        <!-- YouTube -->
-        <div v-if="uploadMode === 'yt'" class="form-group">
-          <label>YouTube URL</label>
-          <input type="url" v-model="ytLink" placeholder="https://youtube.com/watch?v=…" @keyup.enter="submitUpload" />
-        </div>
-
-        <div class="form-actions">
-          <button class="btn btn-ghost" @click="closeUpload">Cancel</button>
-          <button class="btn btn-primary" @click="submitUpload" :disabled="uploadSubmitting">
-            <span v-if="uploadSubmitting" class="spinner"></span>
-            <span v-else>{{ uploadMode === 'file' ? 'Upload' : 'Download' }}</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== Toasts ===== -->
-    <div class="toast-container">
-      <div v-for="t in toasts" :key="t.id" class="toast" :class="{ error: t.type === 'error' }">
-        <strong>{{ t.title }}</strong> &nbsp; {{ t.body }}
-      </div>
-    </div>
-
-    <!-- ===== Audio element ===== -->
-    <audio ref="audio" @timeupdate="onTimeUpdate" @ended="onEnded" @loadedmetadata="onLoadedMetadata"></audio>
+  <div class="toasts">
+    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type"><span class="dot"></span><span>{{ t.msg }}</span></div>
   </div>
 
-  <script>
-    const { createApp } = Vue;
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <a href="#top" class="brand">
+      <span class="mark"><svg viewBox="0 0 32 32" fill="none"><path d="M16 28C9 24 6 19 6 13a10 10 0 0 1 20 0c0 6-3 11-10 15Z" stroke="currentColor" stroke-width="1.6" fill="var(--green-soft)"/><path d="M16 27V8M16 14l5-4M16 18l-5-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+      <h1 class="serif">Static</h1>
+    </a>
+    <nav class="top-nav">
+      <a href="#library">Library</a>
+      <a href="#playlists">Playlists</a>
+      <a href="#guestbook">Guestbook</a>
+    </nav>
+    <div class="top-right">
+      <button class="theme-btn" @click="toggleTheme" :title="dark?'Light mode':'Dark mode'">
+        <svg v-if="!dark" viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        <svg v-else viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+      <div v-if="user" class="who">
+        <div class="ava">{{ user.username[0] }}</div>
+        <div class="nm">{{ user.username }}<small>signed in</small></div>
+        <button class="iconb" title="Sign out" @click="logout"><svg viewBox="0 0 24 24" fill="none"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <button v-else class="signin" @click="openAuth('login')">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sign in
+      </button>
+    </div>
+  </header>
 
-    createApp({
-      data() {
-        return {
-          // auth
-          loggedIn: false,
-          username: '',
-          authModal: false,
-          authMode: 'login',
-          authForm: { username: '', password: '', re_password: '' },
-          authError: '',
-          authSubmitting: false,
+  <div class="page" id="top">
 
-          // music
-          songs: [],
-          loading: true,
-          search: '',
+    <!-- LIBRARY -->
+    <section class="section" id="library">
+      <div class="head rise">
+        <div>
+          <div class="eyebrow">In rotation</div>
+          <h2 class="serif">The Library</h2>
+          <p>Every track in the archive, ranked by the room. Press play on anything — sign in to add or curate.</p>
+        </div>
+        <div class="right">
+          <div class="stat-pair">
+            <div class="stat"><div class="v serif">{{ songs.length }}</div><div class="k">tracks</div></div>
+            <div class="stat"><div class="v serif">{{ formatSize(totalSize) }}</div><div class="k">stored</div></div>
+          </div>
+          <button v-if="user" class="btn btn-green" @click="openUpload"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Add track</button>
+        </div>
+      </div>
 
-          // playback
-          currentSong: null,
-          currentIndex: -1,
-          isPlaying: false,
-          currentTime: 0,
-          volume: 0.8,
-          muted: false,
-          previousVolume: 0.8,
+      <div class="toolbar rise" style="animation-delay:.05s">
+        <div class="search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-3-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input v-model="q" placeholder="Search the archive…" /></div>
+        <div class="sorts">
+          <button :class="{on:sort==='votes'}" @click="sort='votes'">Top voted</button>
+          <button :class="{on:sort==='recent'}" @click="sort='recent'">Newest</button>
+          <button :class="{on:sort==='name'}" @click="sort='name'">A–Z</button>
+        </div>
+      </div>
 
-          // upload
-          uploadModal: false,
-          uploadMode: 'file',
-          selectedFile: null,
-          ytLink: '',
-          uploadError: '',
-          uploadSubmitting: false,
+      <div v-if="loading.songs" class="empty"><svg class="spin" style="width:26px;height:26px;color:var(--green)" viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
 
-          // playlists (loaded when logged in)
-          playlists: [],
+      <div v-else-if="visibleSongs.length" class="track-list rise" style="animation-delay:.1s">
+        <div v-for="song in visibleSongs" :key="song.id" class="track" :class="{playing:current && current.id===song.id}">
+          <div class="t-art" @click="play(song, visibleSongs)">
+            <img v-if="hasCover(song)" :src="song.cover" @error="song._coverErr=true" />
+            <div v-else class="ph" :style="phStyle(song)">{{ initial(song.song_name) }}</div>
+            <div class="ov"><svg v-if="!(current && current.id===song.id && playing)" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><div v-else class="eq"><span></span><span></span><span></span><span></span></div></div>
+          </div>
+          <div class="t-main" @click="play(song, visibleSongs)">
+            <div class="t-name">{{ song.song_name }}</div>
+            <div class="t-sub">{{ current && current.id===song.id && playing ? 'Playing now' : formatSize(song.size) }}</div>
+          </div>
+          <div class="votes">
+            <button class="vbtn down" title="Downvote" @click.stop="vote(song,'down')"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <span class="vcount" :class="{pos:song.votes>0,neg:song.votes<0}">{{ song.votes }}</span>
+            <button class="vbtn up" title="Upvote" @click.stop="vote(song,'up')"><svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="t-len">{{ formatTime(song.length) }}</div>
+          <div class="t-acts">
+            <button v-if="user" class="iconb" title="Add to playlist" @click.stop="openAddTo(song)"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h11M3 12h7M14 15v6M11 18h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+            <button v-if="user" class="iconb danger" title="Delete" @click.stop="removeSong(song)"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+        </div>
+      </div>
 
-          // toasts
-          toasts: [],
-          toastId: 0,
+      <div v-else class="empty">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18V5l12-2v13" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="1.7"/></svg></div>
+        <h3 class="serif">{{ q ? 'Nothing matches' : 'The archive is quiet' }}</h3>
+        <p>{{ q ? 'Try a different search.' : (user ? 'Add your first track to begin.' : 'Sign in to start filling the shelves.') }}</p>
+      </div>
+    </section>
 
-          // socket
-          socket: null,
-        };
-      },
+    <!-- PLAYLISTS -->
+    <section class="section" id="playlists">
+      <div class="head rise">
+        <div>
+          <div class="eyebrow">Collections</div>
+          <h2 class="serif">Playlists</h2>
+          <p>Hand-built sets for every mood. Sign in to view and create.</p>
+        </div>
+        <button v-if="user" class="btn btn-green" @click="showCreatePl=true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>New playlist</button>
+      </div>
 
-      computed: {
-        filteredSongs() {
-          if (!this.search.trim()) return this.songs;
-          const q = this.search.toLowerCase();
-          return this.songs.filter(s =>
-            s.song_name.toLowerCase().includes(q)
-          );
-        },
-        totalSize() {
-          return this.songs.reduce((sum, s) => sum + (s.size || 0), 0);
-        },
-        progressPercent() {
-          if (!this.currentSong || !this.currentSong.length) return 0;
-          return Math.min(100, (this.currentTime / this.currentSong.length) * 100);
-        },
-      },
+      <div v-if="!user" class="prompt">
+        <div><div class="pt serif">Members only</div><div class="ps">Sign in to view and build playlists.</div></div>
+        <button class="btn btn-green" @click="openAuth('login')">Sign in</button>
+      </div>
+      <div v-else-if="playlists.length" class="grid rise" style="animation-delay:.05s">
+        <div class="pl-card add" @click="showCreatePl=true"><div class="plus">+</div><div class="lab">New playlist</div></div>
+        <div v-for="pl in playlists" :key="pl.id" class="pl-card" @click="openPlaylist(pl)">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18V5l10-2v13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="6" cy="18" r="2.4" stroke="currentColor" stroke-width="1.8"/></svg></div>
+          <h3 class="serif">{{ pl.name }}</h3>
+          <div class="meta">{{ pl.song_count }} {{ pl.song_count===1?'track':'tracks' }} · {{ formatDate(pl.created_at) }}</div>
+        </div>
+      </div>
+      <div v-else class="grid rise" style="animation-delay:.05s">
+        <div class="pl-card add" @click="showCreatePl=true"><div class="plus">+</div><div class="lab">Create your first playlist</div></div>
+      </div>
+    </section>
 
-      mounted() {
-        // Restore saved volume preference
-        const savedVol = localStorage.getItem('archive_volume');
-        const savedMute = localStorage.getItem('archive_muted');
-        if (savedVol !== null) {
-          const v = parseFloat(savedVol);
-          if (!isNaN(v) && v >= 0 && v <= 1) {
-            this.volume = v;
-            this.previousVolume = v > 0 ? v : 0.8;
-          }
-        }
-        if (savedMute === 'true') this.muted = true;
+    <!-- GUESTBOOK -->
+    <section class="section" id="guestbook">
+      <div class="head rise">
+        <div>
+          <div class="eyebrow">Talk to the room</div>
+          <h2 class="serif">Guestbook</h2>
+          <p>Leave a note for whoever's listening. Open to everyone.</p>
+        </div>
+      </div>
+      <div class="cmt-grid rise" style="animation-delay:.05s">
+        <div class="cmt-form">
+          <h3 class="serif">Drop a note</h3>
+          <div class="desc">No account needed.</div>
+          <div class="field"><label>Name</label><input v-model="cmtForm.name" placeholder="What should we call you?" maxlength="50" /></div>
+          <div class="field"><label>Message</label><textarea v-model="cmtForm.content" placeholder="Say something nice…" maxlength="500"></textarea></div>
+          <button class="btn btn-green btn-full" @click="postComment" :disabled="loading.cmt"><svg v-if="!loading.cmt" viewBox="0 0 24 24" fill="none"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg v-else class="spin" viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Post note</button>
+        </div>
+        <div>
+          <div v-if="comments.length" class="cmt-list">
+            <div v-for="c in [...comments].reverse()" :key="c.id" class="cmt">
+              <div class="ava" :style="phStyle({id:c.id,song_name:c.name})">{{ initial(c.name) }}</div>
+              <div class="body"><div class="nm">{{ c.name }}</div><div class="ct">{{ c.content }}</div></div>
+              <button v-if="user" class="iconb danger" title="Delete" @click="removeComment(c)"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            </div>
+          </div>
+          <div v-else class="empty"><div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.4A8 8 0 1 1 21 12Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div><h3 class="serif">No notes yet</h3><p>Be the first to sign the guestbook.</p></div>
+        </div>
+      </div>
+    </section>
+  </div>
 
-        this.checkAuth();
-        this.loadSongs();
-        this.setupSocket();
-      },
+  <!-- PLAYER -->
+  <div class="player">
+    <div class="np-info">
+      <template v-if="current">
+        <div class="np-art"><img v-if="hasCover(current)" :src="current.cover" @error="current._coverErr=true" /><div v-else class="ph" :style="phStyle(current)">{{ initial(current.song_name) }}</div></div>
+        <div class="np-txt"><div class="nm">{{ current.song_name }}</div><div class="by"><span class="eq" v-if="playing"><span></span><span></span><span></span><span></span></span>{{ playing ? 'Playing' : 'Paused' }}<span v-if="roomListening" style="color:var(--clay)">· someone's in the room</span></div></div>
+      </template>
+      <template v-else>
+        <div class="np-art ph" style="display:grid;place-items:center;color:var(--faint);background:var(--paper)"><svg style="width:22px;height:22px" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l12-2v13" stroke="currentColor" stroke-width="1.7"/></svg></div>
+        <div class="np-txt"><div class="nm" style="color:var(--muted)">Nothing playing</div><div class="by">Pick a track to begin</div></div>
+      </template>
+    </div>
+    <div class="np-mid">
+      <div class="np-btns">
+        <button class="ctrl" @click="prev" title="Previous"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM20 6v12l-9-6z"/></svg></button>
+        <button class="play" @click="toggle"><svg v-if="!playing" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
+        <button class="ctrl" @click="next" title="Next"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4 6l9 6-9 6z"/></svg></button>
+      </div>
+      <div class="seek-row"><span class="tm">{{ formatTime(currentTime) }}</span><div class="bar" ref="seekBar" @click="seek"><div class="fill" :style="{width:progress+'%'}"></div><div class="knob" :style="{left:progress+'%'}"></div></div><span class="tm">{{ formatTime(duration) }}</span></div>
+    </div>
+    <div class="np-right">
+      <div class="vol">
+        <svg viewBox="0 0 24 24" fill="none" @click="toggleMute"><path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" :opacity="volume>0?1:.4"/><path v-if="volume>0" d="M16 9a4 4 0 0 1 0 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path v-else d="m17 9 4 6M21 9l-4 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <div class="bar" ref="volBar" @click="setVol"><div class="fill" :style="{width:(volume*100)+'%'}"></div><div class="knob" :style="{left:(volume*100)+'%'}"></div></div>
+      </div>
+    </div>
+  </div>
 
-      watch: {
-        volume(newVal) {
-          if (this.$refs.audio) {
-            this.$refs.audio.volume = this.muted ? 0 : newVal;
-          }
-          // Adjusting the slider while muted unmutes
-          if (this.muted && newVal > 0) {
-            this.muted = false;
-          }
-          localStorage.setItem('archive_volume', String(newVal));
-        },
-        muted(newVal) {
-          if (this.$refs.audio) {
-            this.$refs.audio.volume = newVal ? 0 : this.volume;
-          }
-          localStorage.setItem('archive_muted', String(newVal));
-        },
-      },
+  <!-- AUTH MODAL -->
+  <div v-if="showAuth" class="overlay" @click.self="showAuth=false">
+    <div class="modal">
+      <div class="modal-head"><div><h3 class="serif">{{ authMode==='login' ? 'Welcome back' : 'Create the account' }}</h3><p>{{ authMode==='login' ? 'Sign in to manage the archive.' : 'One owner account runs this server.' }}</p></div><button class="x" @click="showAuth=false"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+      <div class="modal-body">
+        <div class="tabs"><button :class="{on:authMode==='login'}" @click="authMode='login';authErr=''">Sign in</button><button :class="{on:authMode==='register'}" @click="authMode='register';authErr=''">Register</button></div>
+        <div v-if="authErr" class="err">{{ authErr }}</div>
+        <template v-if="authMode==='login'">
+          <div class="field"><label>Username</label><input v-model="loginForm.username" @keyup.enter="login" placeholder="username" /></div>
+          <div class="field"><label>Password</label><input v-model="loginForm.password" @keyup.enter="login" type="password" placeholder="••••••••" /></div>
+          <button class="btn btn-green btn-full" @click="login" :disabled="loading.auth"><svg v-if="loading.auth" class="spin" viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Sign in</button>
+        </template>
+        <template v-else>
+          <div class="field"><label>Username</label><input v-model="regForm.username" placeholder="choose a name" /></div>
+          <div class="field"><label>Password</label><input v-model="regForm.password" type="password" placeholder="min. 8 characters" /></div>
+          <div class="field"><label>Confirm password</label><input v-model="regForm.re_password" type="password" @keyup.enter="register" placeholder="retype it" /></div>
+          <button class="btn btn-green btn-full" @click="register" :disabled="loading.auth"><svg v-if="loading.auth" class="spin" viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Create account</button>
+        </template>
+      </div>
+    </div>
+  </div>
 
-      beforeUnmount() {
-        if (this.socket) this.socket.disconnect();
-      },
+  <!-- UPLOAD MODAL -->
+  <div v-if="showUpload" class="overlay" @click.self="showUpload=false">
+    <div class="modal">
+      <div class="modal-head"><div><h3 class="serif">Add a track</h3><p>Upload a file or pull from YouTube.</p></div><button class="x" @click="showUpload=false"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+      <div class="modal-body">
+        <div class="tabs"><button :class="{on:upMode==='file'}" @click="upMode='file';upErr=''">Upload file</button><button :class="{on:upMode==='yt'}" @click="upMode='yt';upErr=''">YouTube</button></div>
+        <div v-if="upErr" class="err">{{ upErr }}</div>
+        <template v-if="upMode==='file'">
+          <div class="drop" @click="$refs.fileIn.click()"><svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L8 8m4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><div>Click to choose an audio file</div><div style="font-size:12px;color:var(--faint);margin-top:4px">mp3, wav, flac, m4a, webm, mp4, opus</div><div v-if="pickedFile" class="fn">{{ pickedFile.name }}</div></div>
+          <input ref="fileIn" type="file" hidden accept=".mp3,.wav,.flac,.m4a,.webm,.mp4,.opus,audio/*" @change="onPick" />
+          <button class="btn btn-green btn-full" @click="uploadFile" :disabled="!pickedFile||loading.up"><svg v-if="loading.up" class="spin" viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>{{ loading.up ? 'Uploading…' : 'Upload track' }}</button>
+        </template>
+        <template v-else>
+          <div class="field"><label>YouTube link</label><input v-model="ytLink" placeholder="https://youtube.com/watch?v=…" @keyup.enter="uploadYt" /></div>
+          <button class="btn btn-green btn-full" @click="uploadYt" :disabled="!ytLink||loading.up"><svg v-if="loading.up" class="spin" viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>{{ loading.up ? 'Fetching…' : 'Pull from YouTube' }}</button>
+          <p class="hint">This can take a few seconds while the server downloads the audio.</p>
+        </template>
+      </div>
+    </div>
+  </div>
 
-      methods: {
-        // ===== API helpers =====
-        async api(path, opts = {}) {
-          const res = await fetch(path, {
-            credentials: 'include',
-            ...opts,
-            headers: {
-              ...(opts.body && !(opts.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
-              ...(opts.headers || {}),
-            },
-          });
-          let data = null;
-          try { data = await res.json(); } catch (e) { /* no body */ }
-          if (!res.ok) {
-            const msg = (data && (data.error || data.message)) || `Request failed (${res.status})`;
-            throw new Error(msg);
-          }
-          return data;
-        },
+  <!-- CREATE PLAYLIST MODAL -->
+  <div v-if="showCreatePl" class="overlay" @click.self="showCreatePl=false">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-head"><div><h3 class="serif">New playlist</h3><p>Give your collection a name.</p></div><button class="x" @click="showCreatePl=false"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+      <div class="modal-body"><div class="field"><label>Playlist name</label><input v-model="newPlName" @keyup.enter="createPlaylist" placeholder="e.g. Late night drives" /></div><button class="btn btn-green btn-full" @click="createPlaylist" :disabled="!newPlName||loading.pl">Create playlist</button></div>
+    </div>
+  </div>
 
-        // ===== Auth =====
-        async checkAuth() {
-          try {
-            const u = await this.api('/api/users/');
-            if (u && u.username) {
-              this.loggedIn = true;
-              this.username = u.username;
-              this.loadPlaylists();
-            }
-          } catch (e) {
-            this.loggedIn = false;
-          }
-        },
+  <!-- ADD TO PLAYLIST MODAL -->
+  <div v-if="showAddTo" class="overlay" @click.self="showAddTo=false">
+    <div class="modal" style="max-width:400px">
+      <div class="modal-head"><div><h3 class="serif">Add to playlist</h3><p style="max-width:24ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ addTarget?.song_name }}</p></div><button class="x" @click="showAddTo=false"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+      <div class="modal-body">
+        <div v-if="playlists.length" class="pl-pick"><button v-for="pl in playlists" :key="pl.id" @click="addToPlaylist(pl)"><div class="pi"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18V5l10-2v13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><div><div class="pn">{{ pl.name }}</div><div class="pm">{{ pl.song_count }} tracks</div></div></button></div>
+        <div v-else style="text-align:center;color:var(--muted);padding:18px 0"><p style="margin-bottom:14px">No playlists yet.</p><button class="btn btn-line" @click="showAddTo=false;showCreatePl=true">Create one</button></div>
+      </div>
+    </div>
+  </div>
 
-        openAuth(mode) {
-          this.authMode = mode || 'login';
-          this.authForm = { username: '', password: '', re_password: '' };
-          this.authError = '';
-          this.authModal = true;
-        },
-        closeAuth() {
-          this.authModal = false;
-          this.authError = '';
-        },
-        toggleAuthMode() {
-          this.authMode = this.authMode === 'login' ? 'register' : 'login';
-          this.authError = '';
-        },
-        async submitAuth() {
-          this.authError = '';
-          this.authSubmitting = true;
-          try {
-            if (this.authMode === 'login') {
-              const r = await this.api('/api/users/login', {
-                method: 'POST',
-                body: JSON.stringify({
-                  username: this.authForm.username,
-                  password: this.authForm.password,
-                }),
-              });
-              this.loggedIn = true;
-              this.username = r.username;
-              this.toast('Signed in', `Welcome back, ${r.username}.`);
-              this.closeAuth();
-              this.loadPlaylists();
-            } else {
-              await this.api('/api/users/register', {
-                method: 'POST',
-                body: JSON.stringify({
-                  username: this.authForm.username,
-                  password: this.authForm.password,
-                  re_password: this.authForm.re_password,
-                }),
-              });
-              this.toast('Account created', 'Now sign in.');
-              this.authMode = 'login';
-            }
-          } catch (e) {
-            this.authError = e.message;
-          } finally {
-            this.authSubmitting = false;
-          }
-        },
-        async logout() {
-          try {
-            await this.api('/api/users/logout', { method: 'POST' });
-            this.loggedIn = false;
-            this.username = '';
-            this.playlists = [];
-            this.toast('Signed out', 'See you soon.');
-          } catch (e) {
-            this.toast('Error', e.message, 'error');
-          }
-        },
+  <!-- PLAYLIST VIEW MODAL -->
+  <div v-if="showPlModal && openedPl" class="overlay" @click.self="showPlModal=false">
+    <div class="modal wide">
+      <div class="modal-head">
+        <div><div class="eyebrow" style="color:var(--clay);font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;margin-bottom:6px">Playlist</div><h3 class="serif">{{ openedPl.name }}</h3><p>{{ openedPl.song_count }} {{ openedPl.song_count===1?'track':'tracks' }} · created {{ formatDate(openedPl.created_at) }}</p></div>
+        <button class="x" @click="showPlModal=false"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="modal-body scroll">
+        <button v-if="openedPl.songs.length" class="btn btn-green" style="margin-bottom:16px" @click="play(openedPl.songs[0], openedPl.songs)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Play all</button>
+        <div v-if="openedPl.songs.length" class="track-list">
+          <div v-for="song in openedPl.songs" :key="song.id" class="track" style="grid-template-columns:42px 1fr auto 60px" :class="{playing:current && current.id===song.id}">
+            <div class="t-art" @click="play(song, openedPl.songs)"><img v-if="hasCover(song)" :src="song.cover" @error="song._coverErr=true" /><div v-else class="ph" :style="phStyle(song)">{{ initial(song.song_name) }}</div><div class="ov"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div></div>
+            <div class="t-main" @click="play(song, openedPl.songs)"><div class="t-name">{{ song.song_name }}</div><div class="t-sub">{{ current && current.id===song.id && playing ? 'Playing now' : formatSize(song.size) }}</div></div>
+            <div class="votes"><span class="vcount" :class="{pos:song.votes>0,neg:song.votes<0}">{{ song.votes }}</span></div>
+            <div class="t-len">{{ formatTime(song.length) }}</div>
+          </div>
+        </div>
+        <div v-else style="text-align:center;color:var(--muted);padding:30px 0">No songs yet. Add some from the Library using the playlist icon on any track.</div>
+      </div>
+    </div>
+  </div>
 
-        // ===== Songs =====
-        async loadSongs() {
-          this.loading = true;
-          try {
-            this.songs = await this.api('/api/music/');
-          } catch (e) {
-            this.toast('Error loading library', e.message, 'error');
-          } finally {
-            this.loading = false;
-          }
-        },
+  <audio ref="audio"></audio>
+</div>
 
-        async confirmDelete(song) {
-          if (!confirm(`Delete "${this.cleanName(song.song_name)}"? This cannot be undone.`)) return;
-          try {
-            await this.api(`/api/music/delete/${song.id}`, { method: 'DELETE' });
-            // socket event will update the list, but update locally too for snappiness
-            this.songs = this.songs.filter(s => s.id !== song.id);
-            if (this.currentSong && this.currentSong.id === song.id) {
-              this.stopPlayback();
-            }
-            this.toast('Deleted', this.cleanName(song.song_name));
-          } catch (e) {
-            this.toast('Error', e.message, 'error');
-          }
-        },
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+const { createApp, ref, reactive, computed, onMounted } = Vue;
+const API = ""; // same-origin; backend serves this file from /static
 
-        // ===== Upload =====
-        openUpload() {
-          this.uploadModal = true;
-          this.uploadMode = 'file';
-          this.selectedFile = null;
-          this.ytLink = '';
-          this.uploadError = '';
-        },
-        closeUpload() {
-          this.uploadModal = false;
-        },
-        handleFileSelect(e) {
-          const f = e.target.files[0];
-          if (f) this.selectedFile = f;
-        },
-        async submitUpload() {
-          this.uploadError = '';
-          this.uploadSubmitting = true;
-          try {
-            if (this.uploadMode === 'file') {
-              if (!this.selectedFile) throw new Error('Choose a file first.');
-              const fd = new FormData();
-              fd.append('file', this.selectedFile);
-              await this.api('/api/music/', { method: 'POST', body: fd });
-              this.toast('Uploaded', this.selectedFile.name);
-            } else {
-              if (!this.ytLink.trim()) throw new Error('Paste a YouTube URL.');
-              await this.api('/api/music/yt', {
-                method: 'POST',
-                body: JSON.stringify({ yt_link: this.ytLink.trim() }),
-              });
-              this.toast('Downloaded', 'Pulled from YouTube.');
-            }
-            this.closeUpload();
-            // socket "new_song" event will append it
-          } catch (e) {
-            this.uploadError = e.message;
-          } finally {
-            this.uploadSubmitting = false;
-          }
-        },
+createApp({
+  setup(){
+    const dark = ref(false);
+    const user = ref(null);
+    const songs = ref([]);
+    const totalSize = ref(0);
+    const playlists = ref([]);
+    const comments = ref([]);
+    const openedPl = ref(null);
+    const showPlModal = ref(false);
+    const q = ref(""); const sort = ref("votes");
+    const loading = reactive({songs:false, auth:false, up:false, pl:false, cmt:false});
+    const toasts = ref([]);
 
-        // ===== Playback =====
-        playSong(song, index) {
-          this.currentSong = song;
-          this.currentIndex = index;
-          this.$nextTick(() => {
-            this.$refs.audio.src = `/api/music/stream/${song.id}`;
-            this.$refs.audio.volume = this.muted ? 0 : this.volume;
-            this.$refs.audio.play()
-              .then(() => { this.isPlaying = true; })
-              .catch(err => {
-                this.toast('Playback error', err.message, 'error');
-              });
-          });
-        },
-        toggleMute() {
-          if (this.muted) {
-            this.muted = false;
-            // If volume was at 0, restore to previous
-            if (this.volume === 0) {
-              this.volume = this.previousVolume || 0.8;
-            }
-          } else {
-            this.previousVolume = this.volume > 0 ? this.volume : 0.8;
-            this.muted = true;
-          }
-        },
-        togglePlay() {
-          if (!this.currentSong) return;
-          const a = this.$refs.audio;
-          if (a.paused) {
-            a.play();
-            this.isPlaying = true;
-          } else {
-            a.pause();
-            this.isPlaying = false;
-          }
-        },
-        nextSong() {
-          if (!this.filteredSongs.length) return;
-          const next = (this.currentIndex + 1) % this.filteredSongs.length;
-          this.playSong(this.filteredSongs[next], next);
-        },
-        previousSong() {
-          if (!this.filteredSongs.length) return;
-          // restart current if past 3s, else go back
-          if (this.currentTime > 3) {
-            this.$refs.audio.currentTime = 0;
-            return;
-          }
-          const prev = (this.currentIndex - 1 + this.filteredSongs.length) % this.filteredSongs.length;
-          this.playSong(this.filteredSongs[prev], prev);
-        },
-        stopPlayback() {
-          this.$refs.audio.pause();
-          this.$refs.audio.src = '';
-          this.currentSong = null;
-          this.currentIndex = -1;
-          this.isPlaying = false;
-          this.currentTime = 0;
-        },
-        seek(e) {
-          if (!this.currentSong) return;
-          const rect = e.currentTarget.getBoundingClientRect();
-          const pct = (e.clientX - rect.left) / rect.width;
-          this.$refs.audio.currentTime = pct * this.currentSong.length;
-        },
-        onTimeUpdate() {
-          this.currentTime = this.$refs.audio.currentTime;
-        },
-        onLoadedMetadata() {
-          // If the server didn't catch duration, use the audio element's
-          if (this.currentSong && (!this.currentSong.length || this.currentSong.length === 0)) {
-            this.currentSong.length = Math.floor(this.$refs.audio.duration);
-          }
-        },
-        onEnded() {
-          this.nextSong();
-        },
+    const audio = ref(null), seekBar = ref(null), volBar = ref(null);
+    const current = ref(null), queue = ref([]), playing = ref(false);
+    const currentTime = ref(0), duration = ref(0), volume = ref(0.8);
+    let prevVol = 0.8; const roomListening = ref(0);
 
-        // ===== Playlists =====
-        async loadPlaylists() {
-          if (!this.loggedIn) return;
-          try {
-            this.playlists = await this.api('/api/playlist/');
-          } catch (e) {
-            // silently ignore
-          }
-        },
+    const showAuth = ref(false), authMode = ref("login"), authErr = ref("");
+    const loginForm = reactive({username:"",password:""});
+    const regForm = reactive({username:"",password:"",re_password:""});
+    const showUpload = ref(false), upMode = ref("file"), upErr = ref(""), ytLink = ref("");
+    const pickedFile = ref(null), fileIn = ref(null);
+    const showCreatePl = ref(false), newPlName = ref("");
+    const showAddTo = ref(false), addTarget = ref(null);
+    const cmtForm = reactive({name:"",content:""});
 
-        // ===== Socket =====
-        setupSocket() {
-          try {
-            this.socket = io({ withCredentials: true });
-            this.socket.on('new_song', (song) => {
-              if (!this.songs.find(s => s.id === song.id)) {
-                this.songs.push(song);
-                this.toast('New track', this.cleanName(song.song_name));
-              }
-            });
-            this.socket.on('song_removed', (song) => {
-              this.songs = this.songs.filter(s => s.id !== song.id);
-            });
-          } catch (e) {
-            console.warn('Socket connection failed', e);
-          }
-        },
+    const PALETTE = [["#4a6b54","#33503f"],["#7a8450","#5e6a3c"],["#a85d3c","#8a4a2f"],["#5c7a6b","#3f5a4b"],["#9a8c5a","#7a6e42"],["#6b7c5a","#4f6042"],["#84634a","#664a36"],["#586b52","#3d4e38"]];
 
-        // ===== Toasts =====
-        toast(title, body, type = 'info') {
-          const id = ++this.toastId;
-          this.toasts.push({ id, title, body, type });
-          setTimeout(() => {
-            this.toasts = this.toasts.filter(t => t.id !== id);
-          }, 3800);
-        },
+    const applyTheme = () => { document.documentElement.classList.toggle("dark", dark.value); };
+    const toggleTheme = () => { dark.value = !dark.value; applyTheme(); };
 
-        // ===== Formatting =====
-        formatDuration(sec) {
-          if (!sec || isNaN(sec)) return '0:00';
-          const s = Math.floor(sec);
-          const m = Math.floor(s / 60);
-          const r = s % 60;
-          return `${m}:${r.toString().padStart(2, '0')}`;
-        },
-        formatTotalDuration() {
-          const total = this.songs.reduce((sum, s) => sum + (s.length || 0), 0);
-          const h = Math.floor(total / 3600);
-          const m = Math.floor((total % 3600) / 60);
-          if (h > 0) return `${h}h ${m}m`;
-          return `${m}m`;
-        },
-        cleanName(name) {
-          if (!name) return 'Untitled';
-          // Strip common extensions for display
-          return name.replace(/\.(mp3|wav|flac|m4a|webm|mp4|opus)$/i, '');
-        },
-        hasValidCover(song) {
-          if (!song || !song.cover) return false;
-          // Server default path doesn't actually serve — skip those
-          if (song.cover.startsWith('/app/covers/')) return false;
-          return true;
-        },
-        onCoverError(e) {
-          // Replace with fallback by hiding the img — Vue's v-if/v-else handles new images
-          e.target.style.display = 'none';
-        },
-      },
-    }).mount('#app');
-  </script>
+    const toast = (msg,type="info")=>{const id=Date.now()+Math.random();toasts.value.push({id,msg,type});setTimeout(()=>toasts.value=toasts.value.filter(t=>t.id!==id),3200);};
+    const api = async (path,opts={})=>{const o=Object.assign({credentials:"include",headers:{}},opts);if(o.body && !(o.body instanceof FormData)){o.headers["Content-Type"]="application/json";o.body=JSON.stringify(o.body);}const res=await fetch(API+path,o);let data=null;try{data=await res.json();}catch(e){}return {ok:res.ok,status:res.status,data};};
+    const formatTime=(s)=>{s=Math.max(0,Math.floor(s||0));const m=Math.floor(s/60),sec=s%60;return m+":"+String(sec).padStart(2,"0");};
+    const formatSize=(mb)=>{mb=mb||0;if(mb>=1024)return (mb/1024).toFixed(2)+" GB";return mb.toFixed(mb<10?1:0)+" MB";};
+    const formatDate=(iso)=>{if(!iso)return "—";try{return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});}catch(e){return "—";}};
+    const initial=(n)=>((n||"?").trim().charAt(0).toUpperCase()||"?");
+    const hasCover=(s)=>s.cover && /^https?:\/\//i.test(s.cover) && !s._coverErr;
+    const phStyle=(s)=>{const i=((s.id||0)+(s.song_name||"").length)%PALETTE.length;const[a,b]=PALETTE[i];return {background:`linear-gradient(135deg,${a},${b})`};};
+
+    const loadSongs=async()=>{loading.songs=true;const r=await api("/api/music/");if(r.ok)songs.value=(r.data||[]).map(s=>({...s,_coverErr:false}));loading.songs=false;};
+    const loadSize=async()=>{const r=await api("/api/music/size");if(r.ok)totalSize.value=r.data?.message?.size||0;};
+    const loadPlaylists=async()=>{if(!user.value)return;const r=await api("/api/playlist/");if(r.ok)playlists.value=r.data||[];};
+    const loadComments=async()=>{const r=await api("/api/comments/");if(r.ok)comments.value=r.data?.comments||[];};
+    const checkAuth=async()=>{const r=await api("/api/users/");if(r.ok&&r.data?.username)user.value={username:r.data.username};else user.value=null;};
+
+    const openAuth=(m)=>{authMode.value=m;authErr.value="";showAuth.value=true;};
+    const login=async()=>{authErr.value="";if(!loginForm.username||!loginForm.password){authErr.value="Enter a username and password.";return;}loading.auth=true;const r=await api("/api/users/login",{method:"POST",body:{username:loginForm.username,password:loginForm.password}});loading.auth=false;if(r.ok){user.value={username:r.data.username};showAuth.value=false;loginForm.password="";toast("Signed in as "+r.data.username,"success");loadPlaylists();}else authErr.value=r.data?.error||"Couldn't sign in.";};
+    const register=async()=>{authErr.value="";if(regForm.password!==regForm.re_password){authErr.value="Passwords don't match.";return;}if(regForm.password.length<8){authErr.value="Password must be at least 8 characters.";return;}loading.auth=true;const r=await api("/api/users/register",{method:"POST",body:{...regForm}});loading.auth=false;if(r.ok){toast("Account created — sign in now","success");authMode.value="login";loginForm.username=regForm.username;}else authErr.value=r.data?.error||"Couldn't register.";};
+    const logout=async()=>{await api("/api/users/logout",{method:"POST"});user.value=null;playlists.value=[];toast("Signed out","info");};
+
+    const onPick=(e)=>{pickedFile.value=e.target.files[0]||null;};
+    const openUpload=()=>{showUpload.value=true;upMode.value="file";upErr.value="";pickedFile.value=null;ytLink.value="";};
+    const uploadFile=async()=>{if(!pickedFile.value)return;upErr.value="";loading.up=true;const fd=new FormData();fd.append("file",pickedFile.value);const r=await api("/api/music/",{method:"POST",body:fd});loading.up=false;if(r.ok){showUpload.value=false;toast("Track uploaded","success");loadSize();}else upErr.value=r.data?.error||"Upload failed.";};
+    const uploadYt=async()=>{if(!ytLink.value)return;upErr.value="";loading.up=true;const r=await api("/api/music/yt",{method:"POST",body:{yt_link:ytLink.value}});loading.up=false;if(r.ok){showUpload.value=false;ytLink.value="";toast("Pulled from YouTube","success");loadSize();}else upErr.value=r.data?.error||"Couldn't fetch that link.";};
+    const removeSong=async(song)=>{if(!confirm(`Delete "${song.song_name}"? This removes the file from the server.`))return;const r=await api("/api/music/delete/"+song.id,{method:"DELETE"});if(r.ok){songs.value=songs.value.filter(s=>s.id!==song.id);if(current.value&&current.value.id===song.id)stop();toast("Track deleted","info");loadSize();}else toast(r.data?.error||"Delete failed","error");};
+    const vote=async(song,dir)=>{const r=await api("/api/music/"+(dir==="up"?"upvote":"downvote")+"/"+song.id,{method:"POST"});if(r.ok&&typeof r.data?.votes==="number")song.votes=r.data.votes;else if(r.ok)song.votes+=dir==="up"?1:-1;else toast(r.data?.error||"Vote failed","error");};
+
+    const createPlaylist=async()=>{if(!newPlName.value)return;loading.pl=true;const r=await api("/api/playlist/create",{method:"POST",body:{name:newPlName.value}});loading.pl=false;if(r.ok){showCreatePl.value=false;newPlName.value="";toast("Playlist created","success");loadPlaylists();}else toast(r.data?.error||"Couldn't create playlist","error");};
+    const openPlaylist=async(pl)=>{const r=await api("/api/playlist/"+pl.id);if(r.ok){openedPl.value={...r.data,songs:(r.data.songs||[]).map(s=>({...s,_coverErr:false}))};showPlModal.value=true;}else toast("Couldn't open playlist","error");};
+    const openAddTo=(song)=>{addTarget.value=song;showAddTo.value=true;if(user.value)loadPlaylists();};
+    const addToPlaylist=async(pl)=>{const r=await api("/api/playlist/"+pl.id+"/songs",{method:"POST",body:{song_id:addTarget.value.id}});if(r.ok){showAddTo.value=false;toast(`Added to "${pl.name}"`,"success");loadPlaylists();}else toast(r.data?.error||"Couldn't add song","error");};
+
+    const postComment=async()=>{if(!cmtForm.name||!cmtForm.content){toast("Add a name and a message","error");return;}loading.cmt=true;const r=await api("/api/comments/",{method:"POST",body:{name:cmtForm.name,content:cmtForm.content}});loading.cmt=false;if(r.ok){cmtForm.content="";toast("Note posted","success");loadComments();}else toast(r.data?.error||"Couldn't post note","error");};
+    const removeComment=async(c)=>{const r=await api("/api/comments/"+c.id,{method:"DELETE"});if(r.ok||r.status===204){comments.value=comments.value.filter(x=>x.id!==c.id);toast("Note deleted","info");}else toast(r.data?.error||"Delete failed","error");};
+
+    const progress=computed(()=>duration.value?(currentTime.value/duration.value)*100:0);
+    const play=(song,list)=>{if(list)queue.value=list;const a=audio.value;if(current.value&&current.value.id===song.id){toggle();return;}current.value=song;a.src=API+"/api/music/stream/"+song.id;a.volume=volume.value;a.play().then(()=>playing.value=true).catch(()=>toast("Couldn't play that track","error"));};
+    const toggle=()=>{const a=audio.value;if(!current.value)return;if(a.paused){a.play();playing.value=true;}else{a.pause();playing.value=false;}};
+    const stop=()=>{const a=audio.value;a.pause();a.src="";current.value=null;playing.value=false;currentTime.value=0;duration.value=0;};
+    const idxInQueue=()=>queue.value.findIndex(s=>current.value&&s.id===current.value.id);
+    const next=()=>{if(!queue.value.length)return;let i=idxInQueue();i=(i+1)%queue.value.length;play(queue.value[i],queue.value);};
+    const prev=()=>{if(!queue.value.length)return;if(currentTime.value>3){audio.value.currentTime=0;return;}let i=idxInQueue();i=(i-1+queue.value.length)%queue.value.length;play(queue.value[i],queue.value);};
+    const seek=(e)=>{const a=audio.value;if(!a.duration)return;const rect=seekBar.value.getBoundingClientRect();a.currentTime=((e.clientX-rect.left)/rect.width)*a.duration;};
+    const setVol=(e)=>{const rect=volBar.value.getBoundingClientRect();let v=(e.clientX-rect.left)/rect.width;v=Math.max(0,Math.min(1,v));volume.value=v;if(audio.value)audio.value.volume=v;if(v>0)prevVol=v;};
+    const toggleMute=()=>{if(volume.value>0){prevVol=volume.value;volume.value=0;}else volume.value=prevVol||0.8;if(audio.value)audio.value.volume=volume.value;};
+
+    const setupSocket=()=>{try{const socket=io(API||undefined,{transports:["websocket","polling"]});socket.on("new_song",(s)=>{if(!songs.value.find(x=>x.id===s.id)){songs.value.push({...s,_coverErr:false});toast(`New track: ${s.song_name}`,"info");loadSize();}});socket.on("song_removed",(s)=>{songs.value=songs.value.filter(x=>x.id!==s.id);});socket.on("current_listening",()=>{roomListening.value=1;clearTimeout(window.__rl);window.__rl=setTimeout(()=>roomListening.value=0,8000);});}catch(e){}};
+
+    const visibleSongs=computed(()=>{let list=songs.value.slice();if(q.value.trim()){const t=q.value.toLowerCase();list=list.filter(s=>(s.song_name||"").toLowerCase().includes(t));}if(sort.value==="votes")list.sort((a,b)=>b.votes-a.votes||a.id-b.id);else if(sort.value==="name")list.sort((a,b)=>(a.song_name||"").localeCompare(b.song_name||""));else list.sort((a,b)=>b.id-a.id);return list;});
+
+    onMounted(async()=>{
+      dark.value = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      applyTheme();
+      const a=audio.value;
+      a.addEventListener("timeupdate",()=>currentTime.value=a.currentTime);
+      a.addEventListener("loadedmetadata",()=>duration.value=a.duration);
+      a.addEventListener("ended",next);
+      a.addEventListener("play",()=>playing.value=true);
+      a.addEventListener("pause",()=>playing.value=false);
+      window.addEventListener("keydown",(e)=>{if(e.code==="Space"&&!/INPUT|TEXTAREA/.test(document.activeElement?.tagName)&&current.value){e.preventDefault();toggle();}});
+      await checkAuth();
+      await Promise.all([loadSongs(),loadSize(),loadComments()]);
+      if(user.value)loadPlaylists();
+      setupSocket();
+    });
+
+    return {dark,toggleTheme,user,songs,totalSize,playlists,comments,openedPl,showPlModal,q,sort,loading,toasts,
+      audio,seekBar,volBar,current,playing,currentTime,duration,volume,progress,roomListening,
+      showAuth,authMode,authErr,loginForm,regForm,showUpload,upMode,upErr,ytLink,pickedFile,fileIn,
+      showCreatePl,newPlName,showAddTo,addTarget,cmtForm,visibleSongs,
+      toast,formatTime,formatSize,formatDate,initial,hasCover,phStyle,
+      openAuth,login,register,logout,onPick,openUpload,uploadFile,uploadYt,removeSong,vote,
+      createPlaylist,openPlaylist,openAddTo,addToPlaylist,postComment,removeComment,
+      play,toggle,next,prev,seek,setVol,toggleMute};
+  }
+}).mount("#app");
+</script>
 </body>
 </html>
